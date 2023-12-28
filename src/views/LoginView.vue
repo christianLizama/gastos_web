@@ -72,18 +72,16 @@ export default {
   },
   methods: {
     async login() {
-      // Aquí se puede agregar la lógica de inicio de sesión
-      //this.loading = true;
       await axios
         .post("usuario/login", {
           email: this.email.toLowerCase(),
           password: this.password,
         })
         .then((respuesta) => {
-          return respuesta.data;
+          return respuesta.data.token;
         })
         .then((data) => {
-          this.$store.dispatch("guardarToken", data);
+          this.$store.dispatch("setToken", data);
           this.$router.push("/").catch(() => {});
           this.$refs.childComponent.SnackbarShow(
             "success",

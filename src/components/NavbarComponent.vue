@@ -40,7 +40,9 @@
           <v-icon>mdi-account</v-icon>
         </v-list-item-avatar>
 
-        <v-list-item-title> Usuario </v-list-item-title>
+        <v-list-item-title v-if="user">{{
+          user.nombreCompleto
+        }}</v-list-item-title>
 
         <v-tooltip bottom color="blue">
           <template v-slot:activator="{ on, attrs }">
@@ -80,7 +82,7 @@
 </template>
 
 <script>
-// import { mapState } from "vuex";
+import { mapState } from "vuex";
 
 export default {
   data() {
@@ -97,6 +99,7 @@ export default {
   },
 
   computed: {
+    ...mapState(["user"]),
     esAdmin() {
       return (
         this.$store.state.usuario && this.$store.state.usuario.rol == "admin"
@@ -113,7 +116,7 @@ export default {
     },
 
     salir() {
-      this.$store.dispatch("salir");
+      this.$store.dispatch("logout");
     },
 
     cambiar() {

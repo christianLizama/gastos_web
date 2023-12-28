@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <navbar-component></navbar-component>
+    <navbar-component v-if="token"></navbar-component>
     <v-main>
       <router-view/>
     </v-main>
@@ -9,6 +9,7 @@
 
 <script>
 import NavbarComponent from './components/NavbarComponent.vue';
+import { mapState } from 'vuex';
 
 export default {
   components: { NavbarComponent },
@@ -17,5 +18,8 @@ export default {
   data: () => ({
     //
   }),
+  computed:{
+    ...mapState(["token"]),
+  },
 };
 </script>
