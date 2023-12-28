@@ -27,6 +27,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/calendarioEventos',
+    name: 'calendarioEventos',
+    component: () => import(/* webpackChunkName: "about" */ '../views/CalendarioEventosView.vue'),
+
+  },
+  {
     path: '*',
     name: "notFound",
     component: () => import(/* webpackChunkName: "notFound" */ '../views/NotFoundView.vue'),
