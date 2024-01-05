@@ -75,6 +75,17 @@
             <v-list-item-title>Usuarios</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
+        
+        <v-list-item active-class="white--text" link to="/calendarioEventos">
+          <v-list-item-icon>
+            <v-icon>mdi-calendar</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>Calendario</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+
         <v-divider></v-divider>
       </v-list>
     </v-navigation-drawer>
