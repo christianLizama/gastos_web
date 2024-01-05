@@ -29,9 +29,9 @@ const UserService = {
     }
   },
 
-  getConductores: async (token) => {
+  getConductores: async (token, mes) => {
     try {
-      const response = await axios.get("usuario/obtenerConductores", {
+      const response = await axios.get(`usuario/obtenerConductores?mes=${mes}`, {
         headers: {
           token: token,
         },
