@@ -69,13 +69,49 @@
         v-slot:[`item.${header.value}`]="{ item }"
       >
         <td
-          :style="{ backgroundColor: getColor(item[header.value]) }"
+          :style="{
+            backgroundColor: getColor(item[header.value]),
+            cursor:
+              'pointer' /* Agrega un cursor de puntero al pasar el ratón */,
+          }"
           :key="header.value"
+          @click="openDeleteDialog(item, header.value)"
+          @mouseover="handleMouseOver"
+          @mouseleave="handleMouseLeave"
         >
           {{ item[header.value] || "T" }}
         </td>
       </template>
     </v-data-table>
+    <v-dialog v-model="dialog" width="500">
+      <v-card>
+        <v-toolbar dark color="grey darken-3" dense flat>
+          <v-icon color="red" class="mr-2">mdi-alert</v-icon>
+          <v-toolbar-title class="text-body-4 font-weight-bold white--text">
+            ¿Estás seguro?
+          </v-toolbar-title>
+        </v-toolbar>
+        <v-card-text class="pa-4 black--text"
+          >Si borras este evento se eliminará de forma permanente.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+            color="red"
+            class="body-2 font-weight-bold"
+            outlined
+            @click="deleteEvent"
+            >Eliminar</v-btn
+          >
+          <v-btn
+            @click="dialog = false"
+            color="grey"
+            text
+            class="body-2 font-weight-bold"
+            >Cancelar</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -110,6 +146,9 @@ export default {
       totalUsers: 0,
       eventosPorUsuario: {},
       mesActual: new Date().getMonth(),
+      anoActual: new Date().getFullYear(),
+      dialog: false,
+      evento: {},
     };
   },
   watch: {
@@ -144,6 +183,50 @@ export default {
     // this.$refs.calendar.checkChange();
   },
   methods: {
+    openDeleteDialog(item, column) {
+      this.dialog = true;
+      this.evento = {
+        _id: item._id,
+        dia: column,
+        mesActual: this.mesActual,
+        añoActual: this.anoActual,
+      };
+    },
+    handleMouseOver(event) {
+      event.target.style.backgroundColor = "lightgray"; // Cambia el color al pasar el ratón
+    },
+    handleMouseLeave(event) {
+      const value = event.target.innerText.trim() || "T"; // Obtén el valor del td
+      event.target.style.backgroundColor = this.getColor(value); // Restaura el color original
+    },
+    async deleteEvent() {
+      const token = this.$store.state.token;
+      const fecha = {
+        dia: this.evento.dia,
+        mesActual: this.evento.mesActual,
+        anoActual: this.evento.añoActual,
+      };
+      const idUser = this.evento._id;
+
+      try {
+        const response = await UserService.eliminarEvento(idUser, fecha, token);
+        const eventoEliminado = response.evento;
+
+        // Eliminar el evento del usuario
+        this.Users.forEach((user) => {
+          if (user._id === idUser) {
+            delete user[eventoEliminado];
+          }
+        });
+
+        this.evento = {};
+      } catch (error) {
+        console.error("Error al eliminar el evento:", error);
+        // Realiza una acción si la solicitud falla por algún motivo general
+      }
+
+      this.dialog = false;
+    },
     async obtenerUsuariosPorEmpresa(empresa) {
       try {
         const token = this.$store.state.token;
@@ -186,6 +269,7 @@ export default {
       this.headers = newHeaders;
 
       this.mesActual = new Date(actualDate).getMonth();
+      this.anoActual = new Date(actualDate).getFullYear();
       //this.getDataFromApi();
     },
     getColor(value) {
@@ -218,10 +302,10 @@ export default {
     async ApiCall(month) {
       try {
         const { sortBy, sortDesc, page, itemsPerPage } = this.options;
-        
+
         const token = this.$store.state.token;
         // Obtener los usuarios
-        const response = await UserService.getConductores(token,month);
+        const response = await UserService.getConductores(token, month);
         const users = response.data;
         const total = users.length;
 

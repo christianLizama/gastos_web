@@ -55,6 +55,26 @@ const UserService = {
       console.error(error);
       throw error; // Maneja o propaga el error según sea necesario
     }
+  },
+
+  async eliminarEvento(idUser,fecha, token) {
+    try {
+
+      const datos = {
+        idUser: idUser,
+        fecha: fecha,
+      }
+      const response = await axios.post("evento/eliminarEvento/",datos, {
+        headers: {
+          'token': token,
+        },
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error(error);
+      throw error; // Maneja o propaga el error según sea necesario
+    }
   }
 
   // Otras funciones relacionadas con usuarios
