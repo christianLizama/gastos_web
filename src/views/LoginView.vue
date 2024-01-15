@@ -83,15 +83,17 @@ export default {
         .then((data) => {
           this.$store.dispatch("setToken", data);
           this.$router.push("/").catch(() => {});
-          this.$refs.childComponent.SnackbarShow(
-            "success",
-            "Sesión iniciada con exito"
-          );
+          this.$notify({
+            title: "Sesión iniciada con exito",
+            text: "Bienvenido",
+            type: "success",
+          });
+          
           this.loading = false;
         })
         .catch((error) => {
           this.loading = false;
-          if (error.response.status == 404) {
+          if (error.response.status == 400) {
             this.$refs.childComponent.SnackbarShow(
               "error",
               "No existe el usuario o las credenciales son incorrectas."

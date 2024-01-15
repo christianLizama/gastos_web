@@ -1,17 +1,71 @@
 import axios from "axios";
+import store from "@/store";
 
 const UserService = {
-  getUsers: async (token) => {
+
+  addUser: async (user) => {
     try {
-      const response = await axios.get("usuario/obtenerUsuarios", {
+      const token = store.state.token;
+      const response = await axios.post("usuario/registrar", user, {
         headers: {
           token: token,
         },
       });
       return response.data;
     } catch (error) {
-      console.error(error);
-      throw error; // Maneja o propaga el error según sea necesario
+      if(error.response.status === 403){
+        store.dispatch("logout");
+        throw new Error("Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.");
+      }
+      else if(error.response.status === 400){
+        if(error.response.data.message === "El correo ya existe"){
+          throw new Error("El correo ya existe");
+        }
+        else{
+          throw new Error("Error de validación");
+        }
+        
+      }
+      else{
+        throw new Error("Error al crear el usuario");
+      }
+    }
+  },
+
+  deleteUser: async (userId) => {
+    try {
+      const token = store.state.token;
+      const response = await axios.delete(`usuario/eliminarUsuarioPorId/${userId}`, {
+        headers: {
+          token: token,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 403) {
+        store.dispatch("logout");
+        throw new Error("Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.");
+      } else {
+        throw new Error("Error al eliminar el usuario");
+      }
+    }
+  },
+
+  getUsers: async (sortBy, sortDesc,search,page,itemsPerPage) => {
+    try {
+      const token = store.state.token;
+      
+      const response = await axios.get(`usuario/obtenerUsuarios?search=${search}&page=${page}&limit=${itemsPerPage}&sortBy=${sortBy}&sortDesc=${sortDesc}`, {
+        headers: {
+          token: token,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response.status === 403) {
+        store.dispatch("logout");
+      }
+      throw error; 
     }
   },
 
@@ -29,17 +83,19 @@ const UserService = {
     }
   },
 
-  getConductores: async (token, mes) => {
+  getConductores: async (token, mes, annio, empresa) => {
     try {
-      const response = await axios.get(`usuario/obtenerConductores?mes=${mes}`, {
+      const response = await axios.get(`usuario/obtenerConductores?mes=${mes}&annio=${annio}&empresa=${empresa}`, {
         headers: {
           token: token,
         },
       });
+
       return response.data;
     } catch (error) {
-      console.error(error);
-      throw error; // Maneja o propaga el error según sea necesario
+      if (error.response.status === 403) {
+        store.dispatch("logout");
+      }
     }
   },
 
@@ -52,8 +108,9 @@ const UserService = {
       });
       return response.data.data;
     } catch (error) {
-      console.error(error);
-      throw error; // Maneja o propaga el error según sea necesario
+      if (error.response.status === 403) {
+        store.dispatch("logout");
+      }
     }
   },
 
@@ -72,7 +129,9 @@ const UserService = {
       
       return response.data;
     } catch (error) {
-      console.error(error);
+      if (error.response.status === 403) {
+        return [];
+      }
       throw error; // Maneja o propaga el error según sea necesario
     }
   }

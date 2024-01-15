@@ -38,10 +38,15 @@ const routes = [
     component: () => import(/* webpackChunkName: "notFound" */ '../views/NotFoundView.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/gestionUsuarios',
+    name: 'gestionUsuarios',
+    component: () => import(/* webpackChunkName: "about" */ '../views/GestionUsuariosView.vue'),
+    meta: { requiresAuth: true }
+  }
 ]
 
 const router = new VueRouter({
-  mode: 'history',
   base: process.env.BASE_URL,
   routes
 })

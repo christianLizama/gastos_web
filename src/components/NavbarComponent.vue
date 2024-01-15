@@ -16,9 +16,7 @@
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" icon @click="changeThemeColor">
             <v-icon>{{
-              $vuetify.theme.dark
-                ? "mdi-white-balance-sunny"
-                : "mdi-weather-night"
+              $vuetify.theme.dark ? "mdi-white-balance-sunny" : "mdi-weather-night"
             }}</v-icon>
           </v-btn>
         </template>
@@ -40,9 +38,7 @@
           <v-icon>mdi-account</v-icon>
         </v-list-item-avatar>
 
-        <v-list-item-title v-if="user">{{
-          user.nombreCompleto
-        }}</v-list-item-title>
+        <v-list-item-title v-if="user">{{ user.nombreCompleto }}</v-list-item-title>
 
         <v-tooltip bottom color="blue">
           <template v-slot:activator="{ on, attrs }">
@@ -67,7 +63,7 @@
           </v-list-item-content>
         </v-list-item>
 
-        <v-list-item active-class="white--text" link to="/usuarios">
+        <v-list-item active-class="white--text" link to="/gestionUsuarios">
           <v-list-item-icon>
             <v-icon>mdi-human-male-boy</v-icon>
           </v-list-item-icon>
@@ -75,7 +71,7 @@
             <v-list-item-title>Usuarios</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-        
+
         <v-list-item active-class="white--text" link to="/calendarioEventos">
           <v-list-item-icon>
             <v-icon>mdi-calendar</v-icon>
@@ -84,7 +80,6 @@
             <v-list-item-title>Calendario</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-
 
         <v-divider></v-divider>
       </v-list>
@@ -112,9 +107,7 @@ export default {
   computed: {
     ...mapState(["user"]),
     esAdmin() {
-      return (
-        this.$store.state.usuario && this.$store.state.usuario.rol == "admin"
-      );
+      return this.$store.state.usuario && this.$store.state.usuario.rol == "admin";
     },
     observarMini() {
       return this.comprobarMini();
