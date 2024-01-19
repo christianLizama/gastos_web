@@ -1,8 +1,9 @@
 import axios from "axios";
 import store from "@/store";
+import router from "@/router";
+import Vue from 'vue';
 
 const UserService = {
-
   addUser: async (user) => {
     try {
       const token = store.state.token;
@@ -13,21 +14,46 @@ const UserService = {
       });
       return response.data;
     } catch (error) {
-      if(error.response.status === 403){
+      if (error.response.status === 403) {
         store.dispatch("logout");
-        throw new Error("Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.");
-      }
-      else if(error.response.status === 400){
-        if(error.response.data.message === "El correo ya existe"){
+        throw new Error(
+          "Tu sesión ha expirado. Por favor, vuelve a iniciar sesión."
+        );
+      } else if (error.response.status === 400) {
+        if (error.response.data.message === "El correo ya existe") {
           throw new Error("El correo ya existe");
-        }
-        else{
+        } else {
           throw new Error("Error de validación");
         }
-        
-      }
-      else{
+      } else {
         throw new Error("Error al crear el usuario");
+      }
+    }
+  },
+
+  updateUser: async (user) => {
+    try {
+      const token = store.state.token;
+      const response = await axios.put(`usuario/actualizarUsuarioPorId/${user._id}`, user, {
+        headers: {
+          token: token,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      // Manejar excepciones específicas que provienen de UserService.updateUser
+      if (
+        error.response.data.message ===
+        "Tu sesión ha expirado. Por favor, vuelve a iniciar sesión."
+      ) {
+        // Cerrar sesión u otra acción
+        throw new Error(error.response.data.message);
+      } else if (error.response.data.message === "El correo ya existe") {
+        throw new Error(error.response.data.message);
+      } else if (error.response.data.message === "Todos los campos son obligatorios") {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error("Error al actualizar el usuario");
       }
     }
   },
@@ -35,37 +61,54 @@ const UserService = {
   deleteUser: async (userId) => {
     try {
       const token = store.state.token;
-      const response = await axios.delete(`usuario/eliminarUsuarioPorId/${userId}`, {
-        headers: {
-          token: token,
-        },
-      });
+      const response = await axios.delete(
+        `usuario/eliminarUsuarioPorId/${userId}`,
+        {
+          headers: {
+            token: token,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       if (error.response && error.response.status === 403) {
         store.dispatch("logout");
-        throw new Error("Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.");
+        throw new Error(
+          "Tu sesión ha expirado. Por favor, vuelve a iniciar sesión."
+        );
       } else {
         throw new Error("Error al eliminar el usuario");
       }
     }
   },
 
-  getUsers: async (sortBy, sortDesc,search,page,itemsPerPage) => {
+  getUsers: async (sortBy, sortDesc, search, page, itemsPerPage) => {
     try {
       const token = store.state.token;
-      
-      const response = await axios.get(`usuario/obtenerUsuarios?search=${search}&page=${page}&limit=${itemsPerPage}&sortBy=${sortBy}&sortDesc=${sortDesc}`, {
-        headers: {
-          token: token,
-        },
-      });
+
+      const response = await axios.get(
+        `usuario/obtenerUsuarios?search=${search}&page=${page}&limit=${itemsPerPage}&sortBy=${sortBy}&sortDesc=${sortDesc}`,
+        {
+          headers: {
+            token: token,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
+      if(error.response.status === 401){
+        //Emitir notificación de que no tiene permisos
+        router.push({ name: "home" });
+        Vue.notify({
+          title: "Error",
+          text: "No tienes permisos para acceder a esta página",
+          type: "error",
+        });
+      }
       if (error.response.status === 403) {
         store.dispatch("logout");
       }
-      throw error; 
+      throw error;
     }
   },
 
@@ -85,14 +128,26 @@ const UserService = {
 
   getConductores: async (token, mes, annio, empresa) => {
     try {
-      const response = await axios.get(`usuario/obtenerConductores?mes=${mes}&annio=${annio}&empresa=${empresa}`, {
-        headers: {
-          token: token,
-        },
-      });
+      const response = await axios.get(
+        `usuario/obtenerConductores?mes=${mes}&annio=${annio}&empresa=${empresa}`,
+        {
+          headers: {
+            token: token,
+          },
+        }
+      );
 
       return response.data;
     } catch (error) {
+      if(error.response.status === 401){
+        //Emitir notificación de que no tiene permisos
+        router.push({ name: "home" });
+        Vue.notify({
+          title: "Error",
+          text: "No tienes permisos para acceder a esta página",
+          type: "error",
+        });
+      }
       if (error.response.status === 403) {
         store.dispatch("logout");
       }
@@ -101,32 +156,43 @@ const UserService = {
 
   async obtenerUsuariosPorEmpresa(empresa, token) {
     try {
-      const response = await axios.get(`usuario/obtenerConductoresPorEmpresa/${empresa}`, {
-        headers: {
-          'token': token,
-        },
-      });
+      const response = await axios.get(
+        `usuario/obtenerConductoresPorEmpresa/${empresa}`,
+        {
+          headers: {
+            token: token,
+          },
+        }
+      );
       return response.data.data;
     } catch (error) {
+      if(error.response.status === 401){
+        //Emitir notificación de que no tiene permisos
+        router.push({ name: "home" });
+        Vue.notify({
+          title: "Error",
+          text: "No tienes permisos para acceder a esta página",
+          type: "error",
+        });
+      }
       if (error.response.status === 403) {
         store.dispatch("logout");
       }
     }
   },
 
-  async eliminarEvento(idUser,fecha, token) {
+  async eliminarEvento(idUser, fecha, token) {
     try {
-
       const datos = {
         idUser: idUser,
         fecha: fecha,
-      }
-      const response = await axios.post("evento/eliminarEvento/",datos, {
+      };
+      const response = await axios.post("evento/eliminarEvento/", datos, {
         headers: {
-          'token': token,
+          token: token,
         },
       });
-      
+
       return response.data;
     } catch (error) {
       if (error.response.status === 403) {
@@ -134,7 +200,7 @@ const UserService = {
       }
       throw error; // Maneja o propaga el error según sea necesario
     }
-  }
+  },
 
   // Otras funciones relacionadas con usuarios
 };

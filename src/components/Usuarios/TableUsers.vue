@@ -196,7 +196,7 @@ export default {
     ],
     usuarios: [],
     editedIndex: -1,
-    rols: ["ADMIN", "LECTOR", "CONDUCTOR"],
+    rols: [],
     empresas: ["TRN", "TIR"],
     newPasswordOptions: ["No", "Si"],
     opcion: "No",
@@ -209,6 +209,7 @@ export default {
       newClave: "",
       reNewClave: "",
       empresa: "",
+      cambioClave: false,
     },
     defaultItem: {
       _id: "",
@@ -219,6 +220,7 @@ export default {
       newClave: "",
       reNewClave: "",
       empresa: "",
+      cambioClave: false,
     },
     totalUsuarios: 0,
     options: {},
@@ -232,9 +234,11 @@ export default {
 
   watch: {
     opcion(newValue) {
-      if (newValue == "Si") {
+      if (newValue === "Si") {
         this.newPassword = false;
+        this.editedItem.cambioClave = true;
       } else {
+        this.editedItem.cambioClave = false;
         this.newPassword = true;
       }
     },
@@ -268,6 +272,7 @@ export default {
         this.usuarios = data.data;
         this.totalUsuarios = data.totalItems;
         this.loading = false;
+        this.rols = data.roles;
       });
     },
     apiCall() {
@@ -277,8 +282,8 @@ export default {
           .then((data) => {
             resolve(data);
           })
-          .catch((error) => {
-            console.error("Error al obtener datos del servidor:", error);
+          .catch(() => {
+            //console.error("Error al obtener datos del servidor:", error);
             this.loading = false;
             resolve({
               items: [],
@@ -299,7 +304,7 @@ export default {
         );
         return response;
       } catch (error) {
-        console.error("Error al obtener datos del servidor:", error);
+        //console.error("Error al obtener datos del servidor:", error);
         this.loading = false;
         return []; // Devuelve un array vacío en caso de error
       }
@@ -357,7 +362,7 @@ export default {
           });
         } else {
           // Otro manejo de errores, por ejemplo, mostrar un mensaje genérico
-          console.error("Error al eliminar el usuario:", error.message);
+          //console.error("Error al eliminar el usuario:", error.message);
           this.$notify({
             title: "Error",
             text: "Ha ocurrido un error al eliminar el usuario.",
@@ -377,8 +382,7 @@ export default {
         });
         this.getDataFromApi();
       } catch (error) {
-        console.error("Error al agregar el usuario:", error);
-
+        //console.error("Error al agregar el usuario:", error);
         let errorMessage = "Error al agregar el usuario";
 
         if (error.message) {
@@ -398,10 +402,73 @@ export default {
         });
       }
     },
+    async actualizarUser() {
+      try {
+        //Verificar si se cambia la contraseña
+        if (this.opcion == "Si") {
+          //Verificar si la contraseña nueva y la repetida son iguales
+          if (this.editedItem.newClave === this.editedItem.reNewClave) {
+            //Actualizar usuario con nueva contraseña
+            const response = await UserService.updateUser(this.editedItem);
+            this.$notify({
+              title: "Success",
+              text: response.message,
+              type: "success",
+            });
+            this.getDataFromApi();
+          } else {
+            this.$notify({
+              title: "Error",
+              text: "Las contraseñas no coinciden",
+              type: "error",
+            });
+          }
+        } else {
+          //Actualizar usuario sin cambiar contraseña
+          const response = await UserService.updateUser(this.editedItem);
+          this.$notify({
+            title: "Success",
+            text: response.message,
+            type: "success",
+          });
+          this.getDataFromApi();
+        }
+      } catch (error) {
+        // Manejar excepciones específicas que provienen de UserService.updateUser
+        if (
+          error.message === "Tu sesión ha expirado. Por favor, vuelve a iniciar sesión."
+        ) {
+          // Cerrar sesión u otra acción
+          this.$notify({
+            title: "Error",
+            text: error.message,
+            type: "error",
+          });
+        } else if (error.message === "El correo ya existe") {
+          this.$notify({
+            title: "Error",
+            text: error.message,
+            type: "error",
+          });
+        } else if (error.message === "Todos los campos son obligatorios") {
+          this.$notify({
+            title: "Error",
+            text: error.message,
+            type: "error",
+          });
+        } else {
+          this.$notify({
+            title: "Error",
+            text: "Error al actualizar el usuario",
+            type: "error",
+          });
+        }
+      }
+    },
     save() {
       // Si se está editando un parametro existente
       if (this.editedIndex > -1) {
-        //this.updateParametro();
+        this.actualizarUser();
       }
       // Si se está creando un nuevo usuario
       else {

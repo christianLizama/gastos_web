@@ -4,22 +4,61 @@
       <v-col cols="12" md="6">
         <div class="text-center">
           <v-autocomplete
+            v-if="
+              user.rol === 'ADMIN' ||
+              user.rol === 'ADMINAPP' ||
+              user.rol === 'LECTOR' ||
+              user.rol === 'EDITOR'
+            "
             :items="empresas"
             v-model="selectedEmpresa"
             label="Empresa"
             class="mr-3 d-inline-flex"
             outlined
           ></v-autocomplete>
+
           <v-autocomplete
-            v-if="user.rol === 'ADMIN' || user.rol === 'ADMINAPP'"
+            v-if="
+              user.rol === 'ADMINTRN' ||
+              user.rol === 'LECTORTRN' ||
+              user.role === 'EDITORTRN'
+            "
+            :items="[empresas[0]]"
+            v-model="selectedEmpresa"
+            label="Empresa"
+            class="mr-3 d-inline-flex"
+            outlined
+          ></v-autocomplete>
+
+          <v-autocomplete
+            v-if="
+              user.rol === 'ADMINTIR' ||
+              user.rol === 'LECTORTIR' ||
+              user.role === 'EDITORTIR'
+            "
+            :items="[empresas[1]]"
+            v-model="selectedEmpresa"
+            label="Empresa"
+            class="mr-3 d-inline-flex"
+            outlined
+          ></v-autocomplete>
+
+          <v-autocomplete
+            v-if="
+              user.rol === 'ADMIN' ||
+              user.rol === 'ADMINAPP' ||
+              user.rol === 'ADMINTRN' ||
+              user.rol === 'ADMINTIR' ||
+              user.rol === 'EDITOR' ||
+              user.rol === 'EDITORTRN' ||
+              user.rol === 'EDITORTIR'
+            "
             :style="{ width: '450px' }"
             :disabled="!selectedEmpresa"
             :items="usuariosDeEmpresa"
             multiple
             label="Usuario"
-            :item-text="
-              (usuario) => `${usuario.nombreCompleto} - ${usuario.rut}`
-            "
+            :item-text="(usuario) => `${usuario.nombreCompleto} - ${usuario.rut}`"
             v-model="usuariosSeleccionados"
             return-object
             class="d-inline-flex"
@@ -43,19 +82,13 @@
         <v-card height="97.2%" class="">
           <!-- Contenido de la leyenda -->
           <v-app-bar dark>
-            <v-toolbar-title
-              class="flex text-center text-body-3 font-weight-bold"
-            >
+            <v-toolbar-title class="flex text-center text-body-3 font-weight-bold">
               Leyendas
             </v-toolbar-title>
           </v-app-bar>
 
           <v-card-text>
-            <p
-              :style="{ color: getColor(item) }"
-              v-for="item in eventLetter"
-              :key="item"
-            >
+            <p :style="{ color: getColor(item) }" v-for="item in eventLetter" :key="item">
               {{ item }}: {{ getEventName(item) }}
             </p>
           </v-card-text>
@@ -76,28 +109,40 @@
       <v-col
         cols="4"
         class="text-center"
-        v-if="user.rol === 'ADMIN' || user.rol === 'ADMINAPP'"
+        v-if="
+          user.rol === 'ADMIN' ||
+          user.rol === 'ADMINTRN' ||
+          user.rol === 'ADMINTIR' ||
+          user.rol === 'ADMINAPP' ||
+          user.rol === 'EDITOR' ||
+          user.rol === 'EDITORTIR' ||
+          user.rol === 'EDITORTRN'
+        "
       >
         <v-card height="97.2%">
           <v-app-bar dark>
-            <v-toolbar-title
-              class="flex text-center text-body-3 font-weight-bold"
-            >
+            <v-toolbar-title class="flex text-center text-body-3 font-weight-bold">
               Acción
             </v-toolbar-title>
           </v-app-bar>
           <v-card-text class="text-h6 font-weight-bold">
-            Seleccione un(os) usuario(s) y una fecha para agregar un descanso:
+            Seleccione un(os) usuario(s) y una fecha para agregar un descanso o medio día
+            de trabajo:
           </v-card-text>
           <v-spacer></v-spacer>
           <v-card-actions class="justify-center align-end">
-            <v-btn
-              color="#90CAF9"
-              class="mb-3"
-              @click="crearEventos('descanso')"
-            >
+            <v-btn color="#90CAF9" class="mb-3" @click="crearEventos('descanso')">
               Agregar Descanso
               <v-icon right>mdi-weather-night</v-icon>
+            </v-btn>
+            <v-btn
+              color="#546E7A"
+              dark
+              class="mb-3"
+              @click="crearEventos('mediotrabajo')"
+            >
+              Agregar Medio Trabajo
+              <v-icon right>mdi-sun-clock-outline</v-icon>
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -116,15 +161,11 @@
         }"
         class="elevation-1 mx-auto"
       >
-        <template
-          v-for="header in headers"
-          v-slot:[`item.${header.value}`]="{ item }"
-        >
+        <template v-for="header in headers" v-slot:[`item.${header.value}`]="{ item }">
           <td
             :style="{
               backgroundColor: getColor(item[header.value]),
-              cursor:
-                'pointer' /* Agrega un cursor de puntero al pasar el ratón */,
+              cursor: 'pointer' /* Agrega un cursor de puntero al pasar el ratón */,
             }"
             :key="header.value"
             @click="
@@ -159,18 +200,10 @@
           Si borras este evento se eliminará de forma permanente.
         </v-card-text>
         <v-card-actions>
-          <v-btn
-            color="red"
-            class="body-2 font-weight-bold"
-            outlined
-            @click="deleteEvent"
+          <v-btn color="red" class="body-2 font-weight-bold" outlined @click="deleteEvent"
             >Eliminar</v-btn
           >
-          <v-btn
-            @click="dialog = false"
-            color="grey"
-            text
-            class="body-2 font-weight-bold"
+          <v-btn @click="dialog = false" color="grey" text class="body-2 font-weight-bold"
             >Cancelar</v-btn
           >
         </v-card-actions>
@@ -189,9 +222,9 @@ export default {
       type: "month",
       value: "",
       events: [],
-      search: '',
+      search: "",
       eventNames: ["trabaja", "ausente", "descanso"],
-      eventLetter: ["T", "A", "D", "V", "L", "NC", "TC"],
+      eventLetter: ["T", "MT", "A", "D", "V", "L", "NC", "TC"],
       empresas: ["TRN", "TIR"],
       selectedDates: [], // Almacena las fechas seleccionadas
       Users: [],
@@ -302,10 +335,7 @@ export default {
     async obtenerUsuariosPorEmpresa(empresa) {
       try {
         const token = this.$store.state.token;
-        const usuarios = await UserService.obtenerUsuariosPorEmpresa(
-          empresa,
-          token
-        ); // Método para obtener usuarios por empresa desde la API
+        const usuarios = await UserService.obtenerUsuariosPorEmpresa(empresa, token); // Método para obtener usuarios por empresa desde la API
         this.usuariosDeEmpresa = usuarios;
       } catch (error) {
         console.error("Error al obtener usuarios:", error);
@@ -355,6 +385,8 @@ export default {
         //Trabaja
         case "T":
           return ""; // Blanco
+        case "MT":
+          return "#546E7A"; //
         //Vacaciones
         case "V":
           return "#81C784"; // Verde
@@ -381,38 +413,39 @@ export default {
       switch (value) {
         //Trabaja
         case "T":
-          return "Trabaja"; // Blanco
+          return "Trabajado";
+        //Trabaja medio dia
+        case "MT":
+          return "Medio Trabajado";
         //Vacaciones
         case "V":
-          return "Vacaciones"; // Celeste
+          return "Vacaciones";
         //Ausentismo
         case "A":
-          return "Ausentismo"; // Rojo
+          return "Ausentismo";
         //Licencia
         case "L":
-          return "Licencia"; // naranjo
+          return "Licencia";
         //Descanso
         case "D":
-          return "Descanso"; // azul
+          return "Descanso";
         //No aplica
         case "NC":
-          return "No contratado"; // gris
+          return "No contratado";
         //Finiquitado
         case "TC":
-          return "Termino de Contrato"; // gris
+          return "Termino de Contrato";
         default:
-          return ""; // Color predeterminado o ninguno
+          return "";
       }
     },
     getDataFromApi() {
       this.loading = true;
-      this.ApiCall(this.mesActual, this.anoActual, this.selectedEmpresa).then(
-        (data) => {
-          this.Users = data.items;
-          this.totalUsers = data.total;
-          this.loading = false;
-        }
-      );
+      this.ApiCall(this.mesActual, this.anoActual, this.selectedEmpresa).then((data) => {
+        this.Users = data.items;
+        this.totalUsers = data.total;
+        this.loading = false;
+      });
     },
     /**
      * In a real application this would be a call to fetch() or axios.get()
@@ -423,12 +456,7 @@ export default {
 
         const token = this.$store.state.token;
         // Obtener los usuarios
-        const response = await UserService.getConductores(
-          token,
-          month,
-          year,
-          empresa
-        );
+        const response = await UserService.getConductores(token, month, year, empresa);
 
         const users = response.data;
         const total = users.length;
@@ -474,29 +502,9 @@ export default {
       }
     },
 
-    // setToday() {
-    //   this.value = "";
-    // },
-    // prev() {
-    //   this.$refs.calendar.prev();
-    // },
-    // next() {
-    //   this.$refs.calendar.next();
-    // },
-    // getEvents() {
-    //   // Lógica para obtener eventos si es necesario
-    //   return this.events;
-    // },
-    // getEventColor(event) {
-    //   return event.color;
-    // },
-    // rnd(a, b) {
-    //   return Math.floor((b - a + 1) * Math.random()) + a;
-    // },
-
     async crearEventos(eventName) {
       if (
-        (eventName !== "ausente" && eventName !== "descanso") ||
+        (eventName !== "mediotrabajo" && eventName !== "descanso") ||
         !this.selectedDates.length ||
         !this.usuariosSeleccionados.length
       ) {
@@ -514,11 +522,17 @@ export default {
       this.usuariosSeleccionados.forEach((usuarioSeleccionado) => {
         this.selectedDates.forEach((selectedDate) => {
           const formattedDate = selectedDate.replace(/-/g, "/");
+          let tipoTrabajo = "";
+          if (eventName === "mediotrabajo") {
+            tipoTrabajo = "trabajo medio día";
+          } else if (eventName === "descanso") {
+            tipoTrabajo = "descanso";
+          }
           const evento = {
             nombre: eventName,
             fecha: formattedDate,
             user: usuarioSeleccionado._id,
-            tipo: "descanso",
+            tipo: tipoTrabajo,
           };
           eventos.push(evento);
         });
@@ -575,7 +589,6 @@ export default {
           eventosCreados.forEach((eventoCreado) => {
             const idUser = eventoCreado.usuario;
             const eventosUser = eventoCreado.eventos;
-            console.log("eventosUser", eventosUser);
             this.Users.forEach((user) => {
               if (user._id === idUser) {
                 eventosUser.forEach((evento) => {
