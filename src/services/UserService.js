@@ -4,6 +4,28 @@ import router from "@/router";
 import Vue from 'vue';
 
 const UserService = {
+
+  getUserFromExternalApi: async (rut, empresa) => {
+    try {
+      const token = store.state.token;
+  
+      const response = await axios.get("usuario/obtenerUsuarioApiExterna", {
+        params: {
+          rut: rut,
+          empresa: empresa,
+        },
+        headers: {
+          token: token,
+        },
+      });
+  
+      return response.data;
+    } catch (error) {
+      console.error(error);
+      throw error; // Maneja o propaga el error según sea necesario
+    }
+  },
+  
   addUser: async (user) => {
     try {
       const token = store.state.token;

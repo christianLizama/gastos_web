@@ -56,14 +56,134 @@
                   {{ formTitle }}
                 </v-toolbar-title>
               </v-toolbar>
+              <v-stepper elevation="0" v-model="e1" v-if="editedIndex == -1">
+                <v-overlay :absolute="absolute" :value="loadingStep2">
+                  <v-progress-circular indeterminate size="64"></v-progress-circular>
+                </v-overlay>
+                <v-stepper-header>
+                  <v-stepper-step :complete="e1 > 1" step="1">
+                    Ingresar rut
+                  </v-stepper-step>
 
-              <v-card-text class="pa-4">
+                  <v-divider></v-divider>
+
+                  <v-stepper-step :complete="e1 > 2" step="2">
+                    Confirmar datos usuario
+                  </v-stepper-step>
+                </v-stepper-header>
+
+                <v-stepper-items>
+                  <v-stepper-content step="1">
+                    <v-card elevation="0" class="mb-12" height="">
+                      <v-card-text class="pa-4">
+                        <v-form ref="form" v-model="valid" lazy-validation>
+                          <v-text-field
+                            v-model="editedItem.rut"
+                            label="Rut sin puntos ni digito verificador"
+                            type="number"
+                          ></v-text-field>
+                          <v-select
+                            v-model="editedItem.empresa"
+                            :items="empresas"
+                            label="Empresa contratante"
+                          ></v-select>
+                        </v-form>
+                      </v-card-text>
+                    </v-card>
+                  </v-stepper-content>
+
+                  <v-stepper-content step="2">
+                    <v-card elevation="0" class="mb-12" height="">
+                      <v-card-text class="pa-4">
+                        <v-form ref="form" v-model="valid" lazy-validation>
+                          <!-- Indicador de carga para el segundo paso -->
+
+                          <v-text-field
+                            disabled
+                            v-model="editedItem.nombreCompleto"
+                            label="Nombre"
+                          ></v-text-field>
+                          <v-text-field
+                            disabled
+                            v-model="editedItem.rut"
+                            label="Rut"
+                          ></v-text-field>
+                          <v-text-field
+                            v-model="editedItem.email"
+                            label="Email"
+                          ></v-text-field>
+                          <v-text-field
+                            v-if="editedIndex == -1"
+                            :append-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'"
+                            :type="show1 ? 'text' : 'password'"
+                            name="input-10-2"
+                            hint="Debe contener 8 caracteres"
+                            class="input-group--focused"
+                            @click:append="show1 = !show1"
+                            v-model="editedItem.clave"
+                            label="Clave"
+                          ></v-text-field>
+                          <v-select
+                            v-model="editedItem.rol"
+                            :items="rols"
+                            label="Rol"
+                          ></v-select>
+                          <v-select
+                            disabled
+                            v-model="editedItem.empresa"
+                            :items="empresas"
+                            label="Empresa"
+                          ></v-select>
+                          <v-select
+                            v-if="editedIndex != -1"
+                            v-model="opcion"
+                            label="Cambiar Contraseña"
+                            :items="newPasswordOptions"
+                          >
+                          </v-select>
+                          <v-text-field
+                            v-if="editedIndex != -1"
+                            :disabled="newPassword"
+                            v-model="editedItem.newClave"
+                            label="Nueva Contraseña"
+                            :append-icon="show2 ? 'mdi-eye' : 'mdi-eye-off'"
+                            :type="show2 ? 'text' : 'password'"
+                            name="input-10-2"
+                            hint="Debe contener 8 caracteres"
+                            class="input-group--focused"
+                            @click:append="show2 = !show2"
+                          ></v-text-field>
+                          <v-text-field
+                            v-if="editedIndex != -1"
+                            :disabled="newPassword"
+                            v-model="editedItem.reNewClave"
+                            label="Repetir Contraseña"
+                            :append-icon="show3 ? 'mdi-eye' : 'mdi-eye-off'"
+                            :type="show3 ? 'text' : 'password'"
+                            name="input-10-2"
+                            hint="Debe contener 8 caracteres"
+                            class="input-group--focused"
+                            @click:append="show3 = !show3"
+                          ></v-text-field>
+                        </v-form>
+                      </v-card-text>
+                    </v-card>
+                  </v-stepper-content>
+                </v-stepper-items>
+              </v-stepper>
+
+              <v-card-text v-if="editedIndex != -1" class="pa-4">
                 <v-form ref="form" v-model="valid" lazy-validation>
                   <v-text-field
                     v-model="editedItem.nombreCompleto"
+                    disabled
                     label="Nombre"
                   ></v-text-field>
-                  <v-text-field v-model="editedItem.rut" label="Rut"></v-text-field>
+                  <v-text-field
+                    disabled
+                    v-model="editedItem.rut"
+                    label="Rut"
+                  ></v-text-field>
                   <v-text-field v-model="editedItem.email" label="Email"></v-text-field>
                   <v-text-field
                     v-if="editedIndex == -1"
@@ -78,6 +198,7 @@
                   ></v-text-field>
                   <v-select v-model="editedItem.rol" :items="rols" label="Rol"></v-select>
                   <v-select
+                    disabled
                     v-model="editedItem.empresa"
                     :items="empresas"
                     label="Empresa"
@@ -118,8 +239,23 @@
 
               <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="blue darken-1" text @click="close"> Cancel </v-btn>
-                <v-btn color="blue darken-1" text @click="save"> Save </v-btn>
+                <!-- <v-btn color="blue darken-1" text @click="close"> Cancelar </v-btn> -->
+                <v-btn v-if="e1 == 2" color="blue darken-1" text @click="comeback">
+                  <v-icon>mdi-arrow-left-bold</v-icon>
+                  Volver atrás
+                </v-btn>
+                <v-btn v-if="e1 == 2" color="primary" @click="save"> Guardar </v-btn>
+                <v-btn v-if="editedIndex != -1" color="primary" @click="save">
+                  Guardar
+                </v-btn>
+                <v-btn
+                  v-if="e1 == 1 && editedIndex == -1"
+                  color="primary"
+                  @click="obtenerUsuarioDesdeApiExterna"
+                >
+                  Continuar
+                  <v-icon>mdi-arrow-right-bold</v-icon>
+                </v-btn>
               </v-card-actions>
             </v-card>
           </v-dialog>
@@ -141,7 +277,7 @@
                   text
                   class="body-2 font-weight-bold"
                   @click="closeDelete"
-                  >Cancel</v-btn
+                  >Cancelar</v-btn
                 >
                 <v-btn
                   color="red"
@@ -173,11 +309,13 @@ import UserService from "@/services/UserService";
 export default {
   data: () => ({
     valid: false,
+    e1: 1,
     search: "",
     dialog: false,
     dialogDelete: false,
     newPassword: true,
     loading: true,
+    loadingStep2: false,
     show1: false,
     show2: false,
     show3: false,
@@ -206,6 +344,7 @@ export default {
       rol: "",
       email: "",
       clave: "",
+      rut: "",
       newClave: "",
       reNewClave: "",
       empresa: "",
@@ -217,6 +356,7 @@ export default {
       rol: "",
       email: "",
       clave: "",
+      rut: "",
       newClave: "",
       reNewClave: "",
       empresa: "",
@@ -224,6 +364,7 @@ export default {
     },
     totalUsuarios: 0,
     options: {},
+    absolute: true,
   }),
 
   computed: {
@@ -257,6 +398,11 @@ export default {
   },
 
   methods: {
+    comeback() {
+      this.e1 = 1;
+      this.editedItem = Object.assign({}, this.defaultItem);
+    },
+
     searchData() {
       // Cuando se ingresa texto en el campo de búsqueda, vuelve a la página 1
       this.options.page = 1;
@@ -273,6 +419,7 @@ export default {
         this.totalUsuarios = data.totalItems;
         this.loading = false;
         this.rols = data.roles;
+        this.loadingStep2 = false;
       });
     },
     apiCall() {
@@ -332,6 +479,8 @@ export default {
       this.$nextTick(() => {
         this.editedItem = Object.assign({}, this.defaultItem);
         this.editedIndex = -1;
+        this.e1 = 1;
+        this.loadingStep2 = false;
       });
     },
 
@@ -341,6 +490,54 @@ export default {
         this.editedItem = Object.assign({}, this.defaultItem);
         this.editedIndex = -1;
       });
+    },
+
+    async obtenerUsuarioDesdeApiExterna() {
+      try {
+        this.e1 = 2;
+        this.loadingStep2 = true;
+        const response = await UserService.getUserFromExternalApi(
+          this.editedItem.rut,
+          this.editedItem.empresa
+        );
+        if (response.userFound) {
+          const user = response.data;
+          this.editedItem.nombreCompleto = user.nombrecompleto;
+          this.editedItem.rut = user.rut;
+          this.editedItem.email = user.email;
+          this.editedItem.empresa = user.empresa;
+          const rutConGuion = user.rut;
+          const rutSinGuion = rutConGuion.split("-")[0];
+          this.editedItem.clave = rutSinGuion;
+        } else {
+          this.e1 = 1;
+          this.$notify({
+            title: "Error",
+            text: "Usuario no encontrado en el sistema",
+            type: "error",
+          });
+        }
+
+        this.loadingStep2 = false;
+      } catch (error) {
+        if (error.response && error.response.status == 400) {
+          this.e1 = 1;
+          this.$notify({
+            title: "Error",
+            text: error.response.data.message,
+            type: "error",
+          });
+          this.loadingStep2 = false;
+        } else {
+          this.e1 = 1;
+          this.$notify({
+            title: "Error",
+            text: "Error al obtener usuario desde la API externa",
+            type: "error",
+          });
+          this.loadingStep2 = false;
+        }
+      }
     },
 
     async borrarUsuario() {

@@ -95,7 +95,7 @@
         </v-card>
       </v-col>
       <v-col cols="4" class="text-center">
-        <v-card class="mb-3">
+        <v-card class="mb-3" height="97.2%">
           <v-date-picker
             color="black"
             full-width
@@ -325,6 +325,12 @@ export default {
         });
 
         this.evento = {};
+        this.$notify({
+          duration: 3500,
+          title: "Evento eliminado",
+          type: "success",
+          text: "El evento se ha eliminado correctamente",
+        });
       } catch (error) {
         console.error("Error al eliminar el evento:", error);
         // Realiza una acción si la solicitud falla por algún motivo general
