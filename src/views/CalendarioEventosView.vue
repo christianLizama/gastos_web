@@ -249,7 +249,9 @@ export default {
       },
       deep: true,
     },
-    mesActual() {
+    mesActual(newValue, oldValue) {
+      console.log("nuevo valor: ", newValue);
+      console.log("viejo valor: ", oldValue);
       this.getDataFromApi();
     },
     anoActual() {

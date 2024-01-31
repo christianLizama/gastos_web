@@ -54,14 +54,14 @@
       <v-divider elevation="1"></v-divider>
 
       <v-list>
-        <v-list-item active-class="white--text" link to="/">
+        <!-- <v-list-item active-class="white--text" link to="/">
           <v-list-item-icon>
             <v-icon>mdi-monitor-dashboard</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
             <v-list-item-title>Dashboard</v-list-item-title>
           </v-list-item-content>
-        </v-list-item>
+        </v-list-item> -->
 
         <v-list-item active-class="white--text" link to="/gestionUsuarios">
           <v-list-item-icon>
