@@ -149,6 +149,7 @@
       </v-col>
     </v-row>
     <v-card>
+      
       <v-data-table
         :headers="headers"
         :items="Users"
@@ -161,6 +162,13 @@
         }"
         class="elevation-1 mx-auto"
       >
+        <template v-slot:top>
+          <v-toolbar flat>
+            <v-toolbar-title>Eventos</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn color="#81C784" :disabled="selectedEmpresa === null" @click="descargarExcel()">Descargar excel <v-icon>mdi-microsoft-excel</v-icon></v-btn>
+          </v-toolbar>
+        </template> 
         <template v-for="header in headers" v-slot:[`item.${header.value}`]="{ item }">
           <td
             :style="{
@@ -508,6 +516,24 @@ export default {
           total: 0, // Inicializa total como 0 en caso de error
         };
       }
+    },
+
+    async descargarExcel(){
+      const token = this.$store.state.token;
+      const empresa = this.selectedEmpresa;
+      const fechaInicioMes = new Date(this.anoActual, this.mesActual, 1).toISOString();
+      const fechaTerminoMes = new Date(this.anoActual, this.mesActual + 1, 0).toISOString();
+      
+      const fechaInicio = fechaInicioMes.split("T")[0];
+      const fechaTermino = fechaTerminoMes.split("T")[0];
+      
+      const response = await UserService.descargarExcel(token, empresa, fechaInicio, fechaTermino);
+      const url = window.URL.createObjectURL(new Blob([response]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "reporte.xlsx");
+      document.body.appendChild(link);
+      link.click();
     },
 
     async crearEventos(eventName) {

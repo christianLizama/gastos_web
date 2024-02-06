@@ -29,11 +29,22 @@
                 color="blue"
                 autocomplete="false"
               />
-              <v-btn class="mb-4 rounded" color="primary" dark block tile @click="login()"
+              <v-btn
+                class="mb-4 rounded"
+                color="primary"
+                dark
+                block
+                tile
+                type="button"
+                @keyup.enter="login"
+                @click="login"
                 >Iniciar Sesión</v-btn
               >
+
               <div class="ajustes2">
-                <router-link to="/recuperarClave">Olvidaste la contraseña?</router-link>
+                <router-link to="/recuperarClave"
+                  >Olvidaste la contraseña?</router-link
+                >
                 <p></p>
                 <v-img
                   class="img"

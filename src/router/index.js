@@ -43,6 +43,12 @@ const routes = [
     name: 'gestionUsuarios',
     component: () => import(/* webpackChunkName: "about" */ '../views/GestionUsuariosView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/solicitudDinero',
+    name: 'solicitudDinero',
+    component: () => import(/* webpackChunkName: "about" */ '../views/SolicitudDineroView.vue'),
+
   }
 ]
 

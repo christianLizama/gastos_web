@@ -224,6 +224,31 @@ const UserService = {
     }
   },
 
+  async descargarExcel(token, empresa,fechaInicio, fechaTermino) {
+    try {
+      const response = await axios.get(`usuario/contarEventosEmpresa?empresa=${empresa}&fechaInicio=${fechaInicio}&fechaTermino=${fechaTermino}`, {
+        headers: {
+          token: token,
+        },
+        responseType: 'arraybuffer',
+      });
+      
+      return response.data;
+    } catch (error) {
+      if (error.response.status === 401) {
+        Vue.notify({
+          title: "Error",
+          text: "No tienes permisos para descargar este archivo",
+          type: "error",
+        });
+      }
+      else if (error.response.status === 403) {
+        store.dispatch("logout");
+      }
+      console.log(error); // Maneja o propaga el error según sea necesario
+    }
+  }
+
   // Otras funciones relacionadas con usuarios
 };
 
