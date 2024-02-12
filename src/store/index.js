@@ -36,7 +36,10 @@ export default new Vuex.Store({
       commit("logout");
       localStorage.removeItem("token");
       commit("setUser", {});
-      router.push("/login");
+      //Verificar si ya está en la página de login
+      if (router.currentRoute.name !== "login"){
+        router.push("/login");
+      }
     }
   },
   modules: {

@@ -1,182 +1,166 @@
 <template>
   <div>
     <v-data-table
+      v-model="selected"
       :headers="headers"
-      :items="desserts"
-      :options.sync="options"
-      :server-items-length="totalDesserts"
-      :loading="loading"
+      :items="solicitudes"
+      :items-per-page="5"
       class="elevation-1"
-    ></v-data-table>
+      :single-select="false"
+      show-select
+      item-key="lineaSolicitud"
+    >
+      <template v-slot:[`item.lineaSolicitud`]="{ item }">
+        <v-chip color="gray" dark>
+          {{ item.lineaSolicitud }}
+        </v-chip>
+      </template>
+      <template v-slot:[`item.viaje`]="{ item }">
+          {{ item.viaje }}
+      </template>
+      <template v-slot:[`item.conductor`]="{ item }">
+        {{ item.conductor.nombreCompleto }}
+      </template>
+      <template v-slot:[`item.creadoPor`]="{ item }">
+        {{ item.creadoPor.nombreCompleto }} - {{ item.creadoPor.email }}
+      </template>
+      <template v-slot:[`item.estado`]="{ item }">
+        <v-chip :color="getColor(item.estado)" dark>
+          {{ item.estado }}
+        </v-chip>
+      </template>
+      <template v-slot:[`item.montos`]="{ item }">
+        <div v-for="(monto, index) in item.montos" :key="index">
+          {{ monto.tipo }}: {{ monto.monto }}
+        </div>
+      </template>
+      <template v-slot:[`item.fechaSolicitud`]="{ item }">
+        {{ new Date(item.fechaSolicitud).toLocaleString() }}
+      </template>
+      <template v-slot:[`item.fechaAprobacion`]="{ item }">
+        <span v-if="item.fechaAprobacion !== null">
+          {{ new Date(item.fechaAprobacion).toLocaleString() }}
+        </span>
+        <span v-else>
+          <!-- Manejo para el caso en que fechaAprobacion es null -->
+          Fecha no disponible
+        </span>
+      </template>
+
+      <template v-slot:[`item.fechaActualizacion`]="{ item }">
+        {{ new Date(item.fechaActualizacion).toLocaleString() }}
+      </template>
+
+      <template v-slot:[`item.comentario`]="{ item }">
+        <v-textarea
+          class="mt-5"
+          auto-grow
+          outlined
+          label="Comentario"
+          :value="item.comentario"
+        ></v-textarea>
+      </template>
+
+      <!-- <template v-slot:[`item.actions`]="{ item }">
+        <v-select label="Cambiar estado" :items="item"></v-select>
+      </template> -->
+    </v-data-table>
   </div>
 </template>
 
 <script>
 export default {
+  props: {
+    solicitudes: {
+      type: Array,
+      required: true,
+    },
+  },
+  created() {},
   data() {
     return {
-      totalDesserts: 0,
-      desserts: [],
-      loading: true,
+      singleSelect: false,
+      selected: [],
       options: {},
       headers: [
+        {
+          text: "Linea de Solicitud",
+          align: "center",
+          sortable: false,
+          value: "lineaSolicitud",
+        },
         {
           text: "Conductor",
           align: "start",
           sortable: false,
-          value: "name",
+          value: "conductor",
         },
-        { text: "Viaje:", value: "calories" },
-        { text: "Fecha Actualización:", value: "fat" },
-        { text: "Fecha Aprobación:", value: "carbs" },
-        { text: "Fecha Solicitud:", value: "protein" },
-        { text: "Estado:", value: "iron" },
-        { text: "Creado Por:", value: "iron" },
-        { text: "Aprobado Por:", value: "iron" },
-        { text: "Empresa:", value: "iron" },
-        { text: "Montos:", value: "iron" },
+        { text: "Viaje", value: "viaje", sortable: false },
+        { text: "Fecha Solicitud", value: "fechaSolicitud", sortable: false },
+        {
+          text: "Fecha Aprobación",
+          value: "fechaAprobacion",
+          sortable: false,
+        },
+        {
+          text: "Fecha Actualización",
+          value: "fechaActualizacion",
+          sortable: false,
+        },
+        { text: "Estado", value: "estado", sortable: false },
+        { text: "Creado Por", value: "creadoPor", sortable: false },
+        { text: "Aprobado Por", value: "aprobadoPor", sortable: false },
+        { text: "Empresa", value: "empresa", sortable: false },
+        { text: "Montos", value: "montos", sortable: false, width: "130px" },
+        {
+          text: "Comentario",
+          value: "comentario",
+          sortable: false,
+          width: "250px",
+        },
+        {
+          text: "Acciones",
+          value: "actions",
+          sortable: false,
+          align: "center",
+        },
       ],
     };
   },
-  watch: {
-    options: {
-      handler() {
-        this.getDataFromApi();
-      },
-      deep: true,
-    },
-  },
+  watch: {},
   methods: {
-    getDataFromApi() {
-      this.loading = true;
-      this.fakeApiCall().then((data) => {
-        this.desserts = data.items;
-        this.totalDesserts = data.total;
-        this.loading = false;
+    obtenerMontos(montos) {
+      console.log(montos[0]);
+      let monto = "";
+      montos.forEach((montoItem) => {
+        const tipoMonto = montoItem.tipo;
+        const montoValor = montoItem.monto;
+        monto += `${tipoMonto}: ${montoValor} \n`;
       });
+      return monto;
     },
-    /**
-     * In a real application this would be a call to fetch() or axios.get()
-     */
-    fakeApiCall() {
-      return new Promise((resolve) => {
-        const { sortBy, sortDesc, page, itemsPerPage } = this.options;
-
-        let items = this.getDesserts();
-        const total = items.length;
-
-        if (sortBy.length === 1 && sortDesc.length === 1) {
-          items = items.sort((a, b) => {
-            const sortA = a[sortBy[0]];
-            const sortB = b[sortBy[0]];
-
-            if (sortDesc[0]) {
-              if (sortA < sortB) return 1;
-              if (sortA > sortB) return -1;
-              return 0;
-            } else {
-              if (sortA < sortB) return -1;
-              if (sortA > sortB) return 1;
-              return 0;
-            }
-          });
-        }
-
-        if (itemsPerPage > 0) {
-          items = items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-        }
-
-        setTimeout(() => {
-          resolve({
-            items,
-            total,
-          });
-        }, 1000);
+    obtenerNombres(conductores) {
+      let nombres = "";
+      conductores.forEach((conductor) => {
+        nombres += conductor.nombreCompleto + ", ";
       });
+      return nombres;
     },
-    getDesserts() {
-      return [
-        {
-          name: "Frozen Yogurt",
-          calories: 159,
-          fat: 6.0,
-          carbs: 24,
-          protein: 4.0,
-          iron: 1,
-        },
-        {
-          name: "Ice cream sandwich",
-          calories: 237,
-          fat: 9.0,
-          carbs: 37,
-          protein: 4.3,
-          iron: 1,
-        },
-        {
-          name: "Eclair",
-          calories: 262,
-          fat: 16.0,
-          carbs: 23,
-          protein: 6.0,
-          iron: 7,
-        },
-        {
-          name: "Cupcake",
-          calories: 305,
-          fat: 3.7,
-          carbs: 67,
-          protein: 4.3,
-          iron: 8,
-        },
-        {
-          name: "Gingerbread",
-          calories: 356,
-          fat: 16.0,
-          carbs: 49,
-          protein: 3.9,
-          iron: 16,
-        },
-        {
-          name: "Jelly bean",
-          calories: 375,
-          fat: 0.0,
-          carbs: 94,
-          protein: 0.0,
-          iron: 0,
-        },
-        {
-          name: "Lollipop",
-          calories: 392,
-          fat: 0.2,
-          carbs: 98,
-          protein: 0,
-          iron: 2,
-        },
-        {
-          name: "Honeycomb",
-          calories: 408,
-          fat: 3.2,
-          carbs: 87,
-          protein: 6.5,
-          iron: 45,
-        },
-        {
-          name: "Donut",
-          calories: 452,
-          fat: 25.0,
-          carbs: 51,
-          protein: 4.9,
-          iron: 22,
-        },
-        {
-          name: "KitKat",
-          calories: 518,
-          fat: 26.0,
-          carbs: 65,
-          protein: 7,
-          iron: 6,
-        },
-      ];
+    getColor(item) {
+      switch (item) {
+        case "PENDIENTE":
+          return "orange";
+        case "APROBADA":
+          return "green";
+        case "RECHZADA":
+          return "red";
+        case "CORREGIR":
+          return "yellow";
+        case "PAGADA":
+          return "blue";
+        default:
+          break;
+      }
     },
   },
 };

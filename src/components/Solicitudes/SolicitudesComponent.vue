@@ -2,9 +2,9 @@
   <v-card max-width="98.6%" elevation="5" outlined class="mx-auto mb-8 mt-3">
     <v-data-table
       :headers="headers"
-      :items="usuarios"
+      :items="contenedores"
       :options.sync="options"
-      :server-items-length="totalUsuarios"
+      :server-items-length="totalContenedores"
       :loading="loading"
       class="elevation-1"
       :items-per-page="5"
@@ -12,6 +12,18 @@
         'items-per-page-options': [5, 10, 15, 20, 25, 30],
       }"
     >
+      <template v-slot:[`item.conductores`]="{ item }">
+        {{ obtenerNombres(item.conductores) }}
+      </template>
+      <template v-slot:[`item.estado`]="{ item }">
+        <v-chip :color="getColor(item.estado)" dark>
+          {{ item.estado }}
+        </v-chip>
+      </template>
+      <template v-slot:[`item.creadoPor`]="{ item }">
+        {{ item.creadoPor.nombreCompleto }} - {{ item.creadoPor.email }}
+      </template>
+
       <template v-slot:top>
         <v-toolbar flat>
           <v-toolbar-title>Solicitudes</v-toolbar-title>
@@ -19,7 +31,7 @@
 
           <v-text-field
             v-model="search"
-            label="Busqueda por nombre o por rut"
+            label="Busqueda por correlativo"
             single-line
             hide-details
           ></v-text-field>
@@ -40,7 +52,8 @@
             </v-tooltip>
           </v-btn>
           <v-spacer></v-spacer>
-          <v-dialog v-model="dialog" max-width="800">
+
+          <v-dialog persistent v-model="dialog" max-width="800">
             <template v-slot:activator="{ on, attrs }">
               <v-btn
                 v-bind="attrs"
@@ -84,85 +97,99 @@
 
                 <v-stepper-items>
                   <v-stepper-content step="1">
-                    <v-card elevation="0" class="mb-12" height="">
-                      <v-card-text class="pa-4">
-                        <v-form ref="form" v-model="valid" lazy-validation>
-                          <v-select
-                            :items="cantidadUsuariosAgregar"
-                            v-model="cantidadUsuarios"
-                            label="Ingrese cantidad de usuarios a agregar en la solicitud"
-                            type="number"
-                          ></v-select>
-                        </v-form>
-                      </v-card-text>
-                    </v-card>
+                    <v-form ref="form" v-model="valid" lazy-validation>
+                      <v-select
+                        :items="cantidadUsuariosAgregar"
+                        v-model="cantidadUsuarios"
+                        label="Ingrese cantidad de usuarios a agregar en la solicitud"
+                        type="number"
+                      ></v-select>
+                      <v-select
+                        :items="empresas"
+                        v-model="empresaSeleccionada"
+                        label="Empresa"
+                      ></v-select>
+                    </v-form>
                   </v-stepper-content>
 
-                  <v-stepper-content step="2">
-                    <v-card elevation="0" class="mb-12" height="">
-                      <v-card-text class="pa-4">
-                        <v-form ref="form" v-model="valid" lazy-validation>
-                          <!-- Indicador de carga para el segundo paso -->
-                          <div
-                            v-for="(item, index) in solicitudes"
-                            :key="index"
-                          >
-                            <v-card outlined elevation="2" tile class="mb-5">
-                              <v-card-text>
-                                <h1>Conductor {{ index + 1 }}</h1>
-                                <v-text-field
-                                  v-model="item.viaje.clienteID"
-                                  label="Cliente"
-                                ></v-text-field>
-                                <v-text-field
-                                  v-model="item.viaje.origen"
-                                  label="Origen"
-                                ></v-text-field>
-                                <v-text-field
-                                  v-model="item.viaje.destino"
-                                  label="Destino"
-                                ></v-text-field>
-                                <v-text-field
-                                  v-model="item.viaje.pais"
-                                  label="País"
-                                ></v-text-field>
-                                <v-text-field
-                                  v-model="item.conductor"
-                                  label="Conductor"
-                                ></v-text-field>
-                                <v-select
-                                  v-model="item.empresa"
-                                  :items="empresas"
-                                  label="Empresa"
-                                ></v-select>
-                                <p>Tipo Moneda:</p>
-                                <v-text-field
-                                  v-if="item.empresa != ''"
-                                  label="CLP"
-                                  v-model="solicitudes[index].montos[0].monto"
-                                >
-                                </v-text-field>
-                                <v-text-field
-                                  v-model="solicitudes[index].montos[1].monto"
-                                  v-if="item.empresa == 'TIR'"
-                                  label="USD"
-                                ></v-text-field>
-                                <v-text-field
-                                  v-model="solicitudes[index].montos[2].monto"
-                                  v-if="item.empresa == 'TIR'"
-                                  label="ARS"
-                                ></v-text-field>
-                                <v-text-field
-                                  v-model="solicitudes[index].montos[3].monto"
-                                  v-if="solicitudes[index].empresa == 'TIR'"
-                                  label="REAL"
-                                ></v-text-field>
-                              </v-card-text>
-                            </v-card>
-                          </div>
-                        </v-form>
-                      </v-card-text>
-                    </v-card>
+                  <v-stepper-content step="2" class="flex">
+                    <v-form ref="form" v-model="valid" lazy-validation>
+                      <!-- Indicador de carga para el segundo paso -->
+                      <div v-for="(item, index) in solicitudes" :key="index">
+                        <v-card
+                          outlined
+                          elevation="2"
+                          tile
+                          class="mb-5 rounded-lg"
+                        >
+                          <v-card-text>
+                            <h1>Conductor {{ index + 1 }}</h1>
+                            <v-text-field
+                              v-model="item.viaje.nombreCliente"
+                              label="Cliente"
+                            ></v-text-field>
+                            <v-text-field
+                              v-model="item.viaje.origen"
+                              label="Origen"
+                            ></v-text-field>
+                            <v-text-field
+                              v-model="item.viaje.destino"
+                              label="Destino"
+                            ></v-text-field>
+                            <v-text-field
+                              v-model="item.viaje.pais"
+                              label="País"
+                            ></v-text-field>
+                            <v-select
+                              :items="empresas"
+                              v-model="item.empresaConductor"
+                              label="Empresa a la que pertenece el conductor"
+                            ></v-select>
+                            <v-autocomplete
+                              v-if="item.empresaConductor === 'TIR'"
+                              :items="conductoresTIR"
+                              v-model="item.conductor"
+                              label="Conductor TIR"
+                              item-text="rut"
+                              item-value="nombreCompleto"
+                              return-object
+                            ></v-autocomplete>
+                            <v-autocomplete
+                              v-if="item.empresaConductor === 'TRN'"
+                              :items="conductoresTRN"
+                              v-model="item.conductor"
+                              label="Conductor TRN"
+                              item-text="rut"
+                              item-value="nombreCompleto"
+                              return-object
+                            ></v-autocomplete>
+
+                            <p>Tipo Moneda:</p>
+                            <v-text-field
+                              v-if="item.empresa != ''"
+                              label="CLP"
+                              v-model="solicitudes[index].montos[0].monto"
+                            >
+                            </v-text-field>
+                            <v-text-field
+                              v-model="solicitudes[index].montos[1].monto"
+                              v-if="item.empresa == 'TIR'"
+                              label="USD"
+                            ></v-text-field>
+                            <v-text-field
+                              v-model="solicitudes[index].montos[2].monto"
+                              v-if="item.empresa == 'TIR'"
+                              label="ARS"
+                            ></v-text-field>
+                            <v-text-field
+                              v-model="solicitudes[index].montos[3].monto"
+                              v-if="solicitudes[index].empresa == 'TIR'"
+                              label="REAL"
+                            ></v-text-field>
+                          </v-card-text>
+                        </v-card>
+                      </div>
+                    </v-form>
                   </v-stepper-content>
                 </v-stepper-items>
               </v-stepper>
@@ -268,6 +295,19 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
+          <v-dialog persistent v-model="dialogSolicitud">
+            <v-toolbar dark color="black lighten-3" dense flat>
+                <v-btn small icon dark @click="dialogSolicitud = !dialogSolicitud">
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+                <v-toolbar-title
+                  class="text-body-4 font-weight-bold white--text"
+                >
+                  Solicitudes
+                </v-toolbar-title>
+              </v-toolbar>
+            <visualizador-component :solicitudes="solicitudesActuales" />
+          </v-dialog>
           <v-dialog v-model="dialogDelete" max-width="500px">
             <v-card>
               <v-toolbar dark color="grey darken-3" dense flat>
@@ -304,9 +344,15 @@
           </v-dialog>
         </v-toolbar>
       </template>
+
       <template v-slot:[`item.actions`]="{ item }">
-        <v-icon small class="mr-2" @click="editItem(item)"> mdi-pencil </v-icon>
-        <v-icon small @click="deleteItem(item)"> mdi-delete </v-icon>
+        <v-icon medium class="mr-2" @click="editItem(item)">
+          mdi-pencil
+        </v-icon>
+        <v-icon medium class="mr-2" @click="mostrarSolicitudes(item)"
+          >mdi-eye
+        </v-icon>
+        <v-icon medium @click="deleteItem(item)"> mdi-delete </v-icon>
       </template>
       <template v-slot:no-data>
         <!-- <v-btn color="primary" @click="initialize"> Reset </v-btn> -->
@@ -318,34 +364,45 @@
 <script>
 import UserService from "@/services/UserService";
 import ContenedorService from "@/services/ContenedorService";
+import VisualizadorComponent from "./VisualizadorComponent.vue";
 
 export default {
+  components: {
+    VisualizadorComponent,
+  },
   data: () => ({
     valid: false,
     e1: 1,
-    search: "",
     dialog: false,
+    search: "",
     dialogDelete: false,
+    dialogSolicitud: false,
     newPassword: true,
     loading: true,
     loadingStep2: false,
     show1: false,
     show2: false,
     show3: false,
+
+    solicitudesActuales: [],
     headers: [
       {
-        text: "Nombre",
+        text: "Correlativo",
+        align: "center",
+        sortable: false,
+        value: "correlativo",
+      },
+      {
+        text: "Conductores",
         align: "start",
         sortable: false,
-        value: "nombreCompleto",
+        value: "conductores",
       },
-      { text: "Rut", value: "rut", sortable: false },
-      { text: "Correo", value: "email", sortable: false },
-      { text: "Rol", value: "rol", sortable: false },
+      { text: "Estado", value: "estado", sortable: false },
       { text: "Empresa", value: "empresa", sortable: true },
-      { text: "Actions", value: "actions", sortable: false },
+      { text: "Creado por", value: "creadoPor", sortable: true },
+      { text: "Actions", value: "actions", sortable: false, align: "center"},
     ],
-    usuarios: [],
     editedIndex: -1,
     rols: [],
     empresas: ["TRN", "TIR"],
@@ -357,6 +414,10 @@ export default {
     cantidadUsuarios: 1,
     items: [],
     solicitudes: [],
+    conductoresTIR: [],
+    conductoresTRN: [],
+    empresaSeleccionada: "",
+    contenedores: [],
     editedItem: {
       _id: "",
       nombreCompleto: "",
@@ -381,7 +442,7 @@ export default {
       empresa: "",
       cambioClave: false,
     },
-    totalUsuarios: 0,
+    totalContenedores: 0,
     options: {},
     absolute: true,
   }),
@@ -417,9 +478,34 @@ export default {
   },
 
   methods: {
+    mostrarSolicitudes(item) {
+      this.solicitudesActuales = item.solicitudes;
+      this.dialogSolicitud = true;
+    },
+    getColor(item) {
+      switch (item) {
+        case "NINGUNA":
+          return "red";
+        case "PARCIALMENTE":
+          return "orange";
+        case "TODO":
+          return "green";
+        default:
+          break;
+      }
+    },
+    obtenerNombres(conductores) {
+      let nombres = "";
+      conductores.forEach((conductor) => {
+        nombres += conductor.nombreCompleto + ", ";
+      });
+      return nombres;
+    },
     comeback() {
       this.e1 = 1;
       this.editedItem = Object.assign({}, this.defaultItem);
+      this.cantidadUsuarios = 1;
+      this.solicitudes = [];
     },
 
     searchData() {
@@ -434,10 +520,9 @@ export default {
     getDataFromApi() {
       this.loading = true;
       this.apiCall().then((data) => {
-        this.usuarios = data.data;
-        this.totalUsuarios = data.totalItems;
+        this.contenedores = data.docs;
+        this.totalContenedores = data.totalDocs;
         this.loading = false;
-        this.rols = data.roles;
         this.loadingStep2 = false;
       });
     },
@@ -448,8 +533,8 @@ export default {
           .then((data) => {
             resolve(data);
           })
-          .catch(() => {
-            //console.error("Error al obtener datos del servidor:", error);
+          .catch((error) => {
+            console.error("Error al obtener datos del servidor:", error);
             this.loading = false;
             resolve({
               items: [],
@@ -461,7 +546,7 @@ export default {
 
     async getServerData(sortBy, sortDesc, page, itemsPerPage) {
       try {
-        const response = await UserService.getUsers(
+        const response = await ContenedorService.getContenedores(
           sortBy,
           sortDesc,
           this.search,
@@ -477,13 +562,13 @@ export default {
     },
 
     editItem(item) {
-      this.editedIndex = this.usuarios.indexOf(item);
+      this.editedIndex = this.contenedores.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialog = true;
     },
 
     deleteItem(item) {
-      this.editedIndex = this.usuarios.indexOf(item);
+      this.editedIndex = this.contenedores.indexOf(item);
       this.editedItem = Object.assign({}, item);
       this.dialogDelete = true;
     },
@@ -499,6 +584,8 @@ export default {
         this.editedItem = Object.assign({}, this.defaultItem);
         this.editedIndex = -1;
         this.e1 = 1;
+        this.cantidadUsuarios = 1;
+        this.solicitudes = [];
         this.loadingStep2 = false;
       });
     },
@@ -513,6 +600,18 @@ export default {
 
     async nextStep() {
       try {
+        const token = this.$store.state.token;
+        const conductoresTRN = await UserService.obtenerUsuariosPorEmpresa(
+          "TRN",
+          token
+        );
+        this.conductoresTRN = conductoresTRN;
+        const conductoresTIR = await UserService.obtenerUsuariosPorEmpresa(
+          "TIR",
+          token
+        );
+        this.conductoresTIR = conductoresTIR;
+
         let viaje = {
           clienteID: "",
           nombreCliente: "",
@@ -521,14 +620,14 @@ export default {
           pais: "",
           fecha: "",
           conductor: "",
-          tipo: "",
+          estado: "NOREALIZADO",
         };
 
         let solicitudUsuario = {
           conductor: "",
-          aprobadoPor: "",
-          empresa: "",
+          empresa: this.empresaSeleccionada,
           creadoPor: "",
+          empresaConductor: "",
           viaje: { ...viaje },
           montos: [
             {
@@ -562,7 +661,7 @@ export default {
           });
         }
 
-        console.log("Solicitudes: ", this.solicitudes);
+        //console.log("Solicitudes: ", this.solicitudes);
 
         this.e1 = 2;
       } catch (error) {
@@ -648,40 +747,23 @@ export default {
     },
 
     async agregarContenedor() {
-      const response = await ContenedorService.addContenedor(this.solicitudes);
-      console.log(response);
-    },
-
-    async agregarUsuario() {
       try {
-        const response = await UserService.addUser(this.editedItem);
+        const response = await ContenedorService.addContenedor(
+          this.solicitudes
+        );
+
         this.$notify({
           title: "Success",
           text: response.message,
           type: "success",
         });
+
         this.getDataFromApi();
       } catch (error) {
-        //console.error("Error al agregar el usuario:", error);
-        let errorMessage = "Error al agregar el usuario";
-
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (error.response && error.response.status === 400) {
-          if (error.response.data.message === "El correo ya existe") {
-            errorMessage = "El correo ya existe";
-          } else {
-            errorMessage = "Error de validación";
-          }
-        }
-
-        this.$notify({
-          title: "Error",
-          text: errorMessage,
-          type: "error",
-        });
+        console.error("Error al agregar el contenedor:", error);
       }
     },
+
     async actualizarUser() {
       try {
         //Verificar si se cambia la contraseña

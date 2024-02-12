@@ -58,7 +58,9 @@
             :items="usuariosDeEmpresa"
             multiple
             label="Usuario"
-            :item-text="(usuario) => `${usuario.nombreCompleto} - ${usuario.rut}`"
+            :item-text="
+              (usuario) => `${usuario.nombreCompleto} - ${usuario.rut}`
+            "
             v-model="usuariosSeleccionados"
             return-object
             class="d-inline-flex"
@@ -77,24 +79,30 @@
         </div>
       </v-col>
     </v-row>
-    <v-row justify="center" class="mb-3">
-      <v-col cols="4" class="text-center" style="max-width: ">
+    <v-row class="mb-3">
+      <v-col class="text-center" >
         <v-card height="97.2%" class="">
           <!-- Contenido de la leyenda -->
           <v-app-bar dark>
-            <v-toolbar-title class="flex text-center text-body-3 font-weight-bold">
+            <v-toolbar-title
+              class="flex text-center text-body-3 font-weight-bold"
+            >
               Leyendas
             </v-toolbar-title>
           </v-app-bar>
 
           <v-card-text>
-            <p :style="{ color: getColor(item) }" v-for="item in eventLetter" :key="item">
+            <p
+              :style="{ color: getColor(item) }"
+              v-for="item in eventLetter"
+              :key="item"
+            >
               {{ item }}: {{ getEventName(item) }}
             </p>
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="4" class="text-center">
+      <v-col class="text-center">
         <v-card class="mb-3" height="97.2%">
           <v-date-picker
             color="black"
@@ -107,7 +115,7 @@
         </v-card>
       </v-col>
       <v-col
-        cols="4"
+        
         class="text-center"
         v-if="
           user.rol === 'ADMIN' ||
@@ -121,42 +129,55 @@
       >
         <v-card height="97.2%">
           <v-app-bar dark>
-            <v-toolbar-title class="flex text-center text-body-3 font-weight-bold">
+            <v-toolbar-title
+              class="flex text-center text-body-3 font-weight-bold"
+            >
               Acción
             </v-toolbar-title>
           </v-app-bar>
           <v-card-text class="text-h6 font-weight-bold">
-            Seleccione un(os) usuario(s) y una fecha para agregar un descanso o medio día
-            de trabajo:
+            Seleccione un(os) usuario(s) y una fecha para agregar un descanso o
+            medio día de trabajo:
           </v-card-text>
           <v-spacer></v-spacer>
           <v-card-actions class="justify-center align-end">
-            <v-btn color="#90CAF9" class="mb-3" @click="crearEventos('descanso')">
-              Agregar Descanso
-              <v-icon right>mdi-weather-night</v-icon>
-            </v-btn>
-            <v-btn
-              color="#546E7A"
-              dark
-              class="mb-3"
-              @click="crearEventos('mediotrabajo')"
-            >
-              Agregar Medio Trabajo
-              <v-icon right>mdi-sun-clock-outline</v-icon>
-            </v-btn>
+            <v-row>
+              <v-col>
+                <v-btn
+                  color="#90CAF9"
+                  class="mb-3"
+                  @click="crearEventos('descanso')"
+                >
+                  Agregar Descanso
+                  <v-icon right>mdi-weather-night</v-icon>
+                </v-btn>
+              </v-col>
+              <v-col>
+                <v-btn
+                  color="#546E7A"
+                  dark
+                  class="mb-3"
+                  @click="crearEventos('mediotrabajo')"
+                >
+                  Agregar Medio Trabajo
+                  <v-icon right>mdi-sun-clock-outline</v-icon>
+                </v-btn>
+              </v-col>
+            </v-row>
           </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
     <v-card>
-      
       <v-data-table
+        height="100vh"
         :headers="headers"
         :items="Users"
         :options.sync="options"
         :server-items-length="totalUsers"
         :loading="loading"
         :items-per-page="-1"
+        fixed-header
         :footer-props="{
           'items-per-page-options': [-1],
         }"
@@ -166,14 +187,23 @@
           <v-toolbar flat>
             <v-toolbar-title>Eventos</v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn color="#81C784" :disabled="selectedEmpresa === null" @click="descargarExcel()">Descargar excel <v-icon>mdi-microsoft-excel</v-icon></v-btn>
+            <v-btn
+              color="#81C784"
+              :disabled="selectedEmpresa === null"
+              @click="descargarExcel()"
+              >Descargar excel <v-icon>mdi-microsoft-excel</v-icon></v-btn
+            >
           </v-toolbar>
-        </template> 
-        <template v-for="header in headers" v-slot:[`item.${header.value}`]="{ item }">
+        </template>
+        <template
+          v-for="header in headers"
+          v-slot:[`item.${header.value}`]="{ item }"
+        >
           <td
             :style="{
               backgroundColor: getColor(item[header.value]),
-              cursor: 'pointer' /* Agrega un cursor de puntero al pasar el ratón */,
+              cursor:
+                'pointer' /* Agrega un cursor de puntero al pasar el ratón */,
             }"
             :key="header.value"
             @click="
@@ -208,10 +238,18 @@
           Si borras este evento se eliminará de forma permanente.
         </v-card-text>
         <v-card-actions>
-          <v-btn color="red" class="body-2 font-weight-bold" outlined @click="deleteEvent"
+          <v-btn
+            color="red"
+            class="body-2 font-weight-bold"
+            outlined
+            @click="deleteEvent"
             >Eliminar</v-btn
           >
-          <v-btn @click="dialog = false" color="grey" text class="body-2 font-weight-bold"
+          <v-btn
+            @click="dialog = false"
+            color="grey"
+            text
+            class="body-2 font-weight-bold"
             >Cancelar</v-btn
           >
         </v-card-actions>
@@ -248,6 +286,7 @@ export default {
       anoActual: new Date().getFullYear(),
       dialog: false,
       evento: {},
+      isHeaderSticky: false,
     };
   },
   watch: {
@@ -290,9 +329,17 @@ export default {
     },
   },
   mounted() {
-    // this.$refs.calendar.checkChange();
+    window.addEventListener("scroll", this.handleScroll);
+  },
+  beforeDestroy() {
+    // Eliminar el oyente de eventos antes de destruir el componente
+    window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
+    handleScroll() {
+      // Lógica para determinar si el encabezado debe ser pegajoso
+      this.isHeaderSticky = window.scrollY > 100; // Cambia 100 según sea necesario
+    },
     customFilter(item, queryText) {
       const searchText = queryText.toLowerCase();
       const itemData = `${item.nombreCompleto.toLowerCase()} ${item.rut.toLowerCase()}`;
@@ -351,7 +398,10 @@ export default {
     async obtenerUsuariosPorEmpresa(empresa) {
       try {
         const token = this.$store.state.token;
-        const usuarios = await UserService.obtenerUsuariosPorEmpresa(empresa, token); // Método para obtener usuarios por empresa desde la API
+        const usuarios = await UserService.obtenerUsuariosPorEmpresa(
+          empresa,
+          token
+        ); // Método para obtener usuarios por empresa desde la API
         this.usuariosDeEmpresa = usuarios;
       } catch (error) {
         console.error("Error al obtener usuarios:", error);
@@ -373,12 +423,14 @@ export default {
           align: "start",
           sortable: false,
           value: "rut",
+          width: "120px",
         },
         {
           text: "Usuarios",
           align: "",
           sortable: false,
           value: "nombreCompleto",
+          width: "300px",
         },
       ];
       for (let i = 1; i <= daysInMonth; i++) {
@@ -457,11 +509,13 @@ export default {
     },
     getDataFromApi() {
       this.loading = true;
-      this.ApiCall(this.mesActual, this.anoActual, this.selectedEmpresa).then((data) => {
-        this.Users = data.items;
-        this.totalUsers = data.total;
-        this.loading = false;
-      });
+      this.ApiCall(this.mesActual, this.anoActual, this.selectedEmpresa).then(
+        (data) => {
+          this.Users = data.items;
+          this.totalUsers = data.total;
+          this.loading = false;
+        }
+      );
     },
     /**
      * In a real application this would be a call to fetch() or axios.get()
@@ -472,7 +526,12 @@ export default {
 
         const token = this.$store.state.token;
         // Obtener los usuarios
-        const response = await UserService.getConductores(token, month, year, empresa);
+        const response = await UserService.getConductores(
+          token,
+          month,
+          year,
+          empresa
+        );
 
         const users = response.data;
         const total = users.length;
@@ -518,16 +577,29 @@ export default {
       }
     },
 
-    async descargarExcel(){
+    async descargarExcel() {
       const token = this.$store.state.token;
       const empresa = this.selectedEmpresa;
-      const fechaInicioMes = new Date(this.anoActual, this.mesActual, 1).toISOString();
-      const fechaTerminoMes = new Date(this.anoActual, this.mesActual + 1, 0).toISOString();
-      
+      const fechaInicioMes = new Date(
+        this.anoActual,
+        this.mesActual,
+        1
+      ).toISOString();
+      const fechaTerminoMes = new Date(
+        this.anoActual,
+        this.mesActual + 1,
+        0
+      ).toISOString();
+
       const fechaInicio = fechaInicioMes.split("T")[0];
       const fechaTermino = fechaTerminoMes.split("T")[0];
-      
-      const response = await UserService.descargarExcel(token, empresa, fechaInicio, fechaTermino);
+
+      const response = await UserService.descargarExcel(
+        token,
+        empresa,
+        fechaInicio,
+        fechaTermino
+      );
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement("a");
       link.href = url;
@@ -652,6 +724,12 @@ export default {
 </script>
 
 <style>
+.sticky-header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000; /* Ajusta según sea necesario para que esté por encima de otros elementos */
+}
 .text-center {
   text-align: center;
 }
