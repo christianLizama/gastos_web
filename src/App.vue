@@ -69,9 +69,9 @@ export default {
   flex-direction: row;
   flex-wrap: nowrap;
   text-align: left;
-  font-size: 17px; /* Aumenté el tamaño de la fuente a 16px */
-  margin: 10px; /* Aumenté el espacio exterior a 10px */
-  margin-bottom: 0;
+  font-size: 17px; 
+  margin: 10px; 
+  margin-bottom: 3;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;

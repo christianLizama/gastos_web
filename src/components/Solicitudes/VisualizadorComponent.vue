@@ -12,11 +12,11 @@
     >
       <template v-slot:[`item.lineaSolicitud`]="{ item }">
         <v-chip color="gray" dark>
-          {{ item.lineaSolicitud }}
+          <strong>{{ item.lineaSolicitud }}</strong>
         </v-chip>
       </template>
-      <template v-slot:[`item.viaje`]="{ item }">
-          {{ item.viaje }}
+      <template v-slot:[`item.viaje`]="{}">
+        <!-- {{ item.viaje }} -->
       </template>
       <template v-slot:[`item.conductor`]="{ item }">
         {{ item.conductor.nombreCompleto }}
@@ -51,24 +51,35 @@
         {{ new Date(item.fechaActualizacion).toLocaleString() }}
       </template>
 
-      <template v-slot:[`item.comentario`]="{ item }">
+      <template v-slot:[`item.comentarios`]="{ item }">
         <v-textarea
           class="mt-5"
           auto-grow
           outlined
           label="Comentario"
-          :value="item.comentario"
+          :value="item.comentarios"
+          v-model="item.comentarios"
         ></v-textarea>
       </template>
-
-      <!-- <template v-slot:[`item.actions`]="{ item }">
-        <v-select label="Cambiar estado" :items="item"></v-select>
-      </template> -->
+      <template v-slot:[`footer.prepend`]>
+        <v-btn color="primary" dark class="ma-2" @click="buttonCallback">
+          Guardar Cambios
+          <v-icon medium right>mdi-content-save</v-icon>
+        </v-btn>
+      </template>
+      <template v-slot:[`item.actions`]="{ item }">
+        <v-select
+          v-model="item.estado"
+          label="Cambiar estado"
+          :items="estados"
+        ></v-select>
+      </template>
     </v-data-table>
   </div>
 </template>
 
 <script>
+import solicitudService from "@/services/SolicitudService";
 export default {
   props: {
     solicitudes: {
@@ -76,12 +87,17 @@ export default {
       required: true,
     },
   },
-  created() {},
+  created() {
+    // Guardar una copia de las solicitudes originales
+    this.originalSolicitudes = JSON.parse(JSON.stringify(this.solicitudes));
+  },
   data() {
     return {
+      estados: ["PENDIENTE", "APROBADA", "RECHAZADA", "CORREGIR"],
       singleSelect: false,
       selected: [],
       options: {},
+      originalSolicitudes: [],
       headers: [
         {
           text: "Linea de Solicitud",
@@ -107,14 +123,14 @@ export default {
           value: "fechaActualizacion",
           sortable: false,
         },
-        { text: "Estado", value: "estado", sortable: false },
         { text: "Creado Por", value: "creadoPor", sortable: false },
         { text: "Aprobado Por", value: "aprobadoPor", sortable: false },
         { text: "Empresa", value: "empresa", sortable: false },
         { text: "Montos", value: "montos", sortable: false, width: "130px" },
+        { text: "Estado", value: "estado", sortable: false },
         {
-          text: "Comentario",
-          value: "comentario",
+          text: "Comentarios",
+          value: "comentarios",
           sortable: false,
           width: "250px",
         },
@@ -127,10 +143,88 @@ export default {
       ],
     };
   },
-  watch: {},
+  watch: {
+    solicitudes: function (nuevoValor) {
+      this.originalSolicitudes = JSON.parse(JSON.stringify(nuevoValor));
+      this.selected = [];
+    },
+  },
   methods: {
+    resetChanges() {
+      this.$emit("update:solicitudes", this.originalSolicitudes);
+    },
+
+    // Método que se ejecuta al hacer clic en el botón "Guardar Cambios"
+    async buttonCallback() {
+      // Verificar si hay solicitudes seleccionadas
+      if (this.selected.length === 0) {
+        this.$notify({
+          title: "Error",
+          text: "Debe seleccionar al menos una solicitud",
+          type: "error",
+        });
+        return;
+      } else {
+        try {
+          // Enviar las solicitudes seleccionadas al servidor
+          const response = await solicitudService.updateSolicitudes(
+            this.selected
+          );
+          if (response.status === 200) {
+            //Verificar si el largo de las solicitudes seleccionadas es distinto al largo de las solicitudes originales para actualizar el estado de las solicitudes
+            if (this.selected.length !== this.originalSolicitudes.length) {
+              console.log("No son iguales");
+
+              let solicitudesActualizadas = response.data.solicitudes;
+
+              // Crear un conjunto (Set) de IDs de las solicitudes actualizadas
+              const idsSolicitudesActualizadas = new Set(
+                solicitudesActualizadas.map((solicitud) => solicitud._id)
+              );
+
+              // Filtrar las solicitudes originales para obtener aquellas cuyos IDs no están en el conjunto de IDs actualizados
+              const solicitudesNoActualizadas = this.originalSolicitudes.filter(
+                (solicitud) => !idsSolicitudesActualizadas.has(solicitud._id)
+              );
+
+              // Agregar las solicitudes no actualizadas a las solicitudes actualizadas
+              solicitudesActualizadas = solicitudesActualizadas.concat(
+                solicitudesNoActualizadas
+              );
+
+              //Actualizar las solicitudes en el componente padre
+              this.$emit("update:solicitudes", solicitudesActualizadas);
+
+              console.log("Solicitudes actualizadas", solicitudesActualizadas);
+              this.originalSolicitudes = JSON.parse(
+                JSON.stringify(solicitudesActualizadas)
+              );
+              this.selected = [];
+            } else {
+              this.$notify({
+                title: "Éxito",
+                text: "Solicitudes actualizadas correctamente",
+                type: "success",
+              });
+              this.$emit("update:solicitudes", response.data.solicitudes);
+              this.originalSolicitudes = JSON.parse(
+                JSON.stringify(this.selected)
+              );
+              this.selected = [];
+            }
+          }
+        } catch (error) {
+          this.$notify({
+            title: "Error",
+            text: "Ocurrió un error al actualizar las solicitudes",
+            type: "error",
+          });
+          this.resetChanges();
+          this.selected = [];
+        }
+      }
+    },
     obtenerMontos(montos) {
-      console.log(montos[0]);
       let monto = "";
       montos.forEach((montoItem) => {
         const tipoMonto = montoItem.tipo;
@@ -152,7 +246,7 @@ export default {
           return "orange";
         case "APROBADA":
           return "green";
-        case "RECHZADA":
+        case "RECHAZADA":
           return "red";
         case "CORREGIR":
           return "yellow";

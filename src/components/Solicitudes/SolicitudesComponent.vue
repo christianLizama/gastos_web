@@ -53,7 +53,12 @@
           </v-btn>
           <v-spacer></v-spacer>
 
-          <v-dialog persistent v-model="dialog" max-width="800">
+          <v-dialog
+            persistent
+            v-model="dialog"
+            :fullscreen="fullScr"
+            max-width="100vh"
+          >
             <template v-slot:activator="{ on, attrs }">
               <v-btn
                 v-bind="attrs"
@@ -66,6 +71,13 @@
               </v-btn>
             </template>
             <v-card>
+              <v-overlay :absolute="absolute" :value="loadingStep2">
+                <v-progress-circular
+                  color="primary"
+                  indeterminate
+                  size="64"
+                ></v-progress-circular>
+              </v-overlay>
               <v-toolbar dark color="black lighten-3" dense flat>
                 <v-btn icon dark @click="dialog = !dialog">
                   <v-icon>mdi-close</v-icon>
@@ -77,15 +89,9 @@
                 </v-toolbar-title>
               </v-toolbar>
               <v-stepper elevation="0" v-model="e1" v-if="editedIndex == -1">
-                <v-overlay :absolute="absolute" :value="loadingStep2">
-                  <v-progress-circular
-                    indeterminate
-                    size="64"
-                  ></v-progress-circular>
-                </v-overlay>
                 <v-stepper-header>
                   <v-stepper-step :complete="e1 > 1" step="1">
-                    Ingresar Cantidad de Usuarios
+                    Seleccionar empresa
                   </v-stepper-step>
 
                   <v-divider></v-divider>
@@ -99,12 +105,6 @@
                   <v-stepper-content step="1">
                     <v-form ref="form" v-model="valid" lazy-validation>
                       <v-select
-                        :items="cantidadUsuariosAgregar"
-                        v-model="cantidadUsuarios"
-                        label="Ingrese cantidad de usuarios a agregar en la solicitud"
-                        type="number"
-                      ></v-select>
-                      <v-select
                         :items="empresas"
                         v-model="empresaSeleccionada"
                         label="Empresa"
@@ -114,156 +114,222 @@
 
                   <v-stepper-content step="2" class="flex">
                     <v-form ref="form" v-model="valid" lazy-validation>
-                      <!-- Indicador de carga para el segundo paso -->
                       <div v-for="(item, index) in solicitudes" :key="index">
                         <v-card
                           outlined
                           elevation="2"
                           tile
                           class="mb-5 rounded-lg"
+                          :id="'card-' + index"
                         >
-                          <v-card-text>
-                            <h1>Conductor {{ index + 1 }}</h1>
-                            <v-text-field
-                              v-model="item.viaje.nombreCliente"
-                              label="Cliente"
-                            ></v-text-field>
-                            <v-text-field
-                              v-model="item.viaje.origen"
-                              label="Origen"
-                            ></v-text-field>
-                            <v-text-field
-                              v-model="item.viaje.destino"
-                              label="Destino"
-                            ></v-text-field>
-                            <v-text-field
-                              v-model="item.viaje.pais"
-                              label="País"
-                            ></v-text-field>
-                            <v-select
-                              :items="empresas"
-                              v-model="item.empresaConductor"
-                              label="Empresa a la que pertenece el conductor"
-                            ></v-select>
-                            <v-autocomplete
-                              v-if="item.empresaConductor === 'TIR'"
-                              :items="conductoresTIR"
-                              v-model="item.conductor"
-                              label="Conductor TIR"
-                              item-text="rut"
-                              item-value="nombreCompleto"
-                              return-object
-                            ></v-autocomplete>
-                            <v-autocomplete
-                              v-if="item.empresaConductor === 'TRN'"
-                              :items="conductoresTRN"
-                              v-model="item.conductor"
-                              label="Conductor TRN"
-                              item-text="rut"
-                              item-value="nombreCompleto"
-                              return-object
-                            ></v-autocomplete>
+                          <v-card-text class="d-flex justify-space-between">
+                            <v-btn @click="toggleExpand(index)" icon>
+                              <v-icon>
+                                {{
+                                  item.expandida
+                                    ? "mdi-chevron-up"
+                                    : "mdi-chevron-down"
+                                }}
+                              </v-icon>
+                            </v-btn>
+                            <div class="d-flex align-center">
+                              <h5 v-if="!item.expandida" class="mb-0">
+                                {{ item.viaje.nombreCliente }}
+                              </h5>
+                            </div>
 
-                            <p>Tipo Moneda:</p>
-                            <v-text-field
-                              v-if="item.empresa != ''"
-                              label="CLP"
-                              v-model="solicitudes[index].montos[0].monto"
+                            <!-- Texto centrado vertical y horizontalmente -->
+                            <div class="d-flex align-center">
+                              <h5 v-if="!item.expandida" class="mb-0">
+                                {{ item.conductor.nombreCompleto }}
+                              </h5>
+                            </div>
+                            <v-tooltip
+                              bottom
+                              v-if="
+                                (solicitudes.length > 1 || index > 0) &&
+                                !item.expandida
+                              "
                             >
-                            </v-text-field>
-                            <v-text-field
-                              v-model="solicitudes[index].montos[1].monto"
-                              v-if="item.empresa == 'TIR'"
-                              label="USD"
-                            ></v-text-field>
-                            <v-text-field
-                              v-model="solicitudes[index].montos[2].monto"
-                              v-if="item.empresa == 'TIR'"
-                              label="ARS"
-                            ></v-text-field>
-                            <v-text-field
-                              v-model="solicitudes[index].montos[3].monto"
-                              v-if="solicitudes[index].empresa == 'TIR'"
-                              label="REAL"
-                            ></v-text-field>
+                              <template v-slot:activator="{ on }">
+                                <v-btn
+                                  @click="removeFieldSolicitud(index)"
+                                  icon
+                                  v-on="on"
+                                >
+                                  <v-icon color="red darken-1"
+                                    >mdi-delete</v-icon
+                                  >
+                                </v-btn>
+                              </template>
+                              <span>Eliminar solicitud</span>
+                            </v-tooltip>
                           </v-card-text>
+                          <v-expand-transition>
+                            <v-card-text v-show="item.expandida">
+                              <h1>Conductor {{ index + 1 }}</h1>
+                              <v-autocomplete
+                                :items="obtenerClientes(empresaSeleccionada)"
+                                v-model="item.viaje.cliente"
+                                label="RUT Cliente - Nombre"
+                                item-text="RutCliente"
+                                item-value="RutCliente"
+                                :filter="customFilter"
+                                return-object
+                              >
+                                <template v-slot:item="{ item }">
+                                  {{ item.RutCliente }} -
+                                  {{ item.NombreCliente }}
+                                </template>
+                              </v-autocomplete>
+
+                              <v-select
+                                
+                                :items="empresas"
+                                v-model="item.empresaConductor"
+                                label="Empresa a la que pertenece el conductor"
+                              ></v-select>
+
+                              <v-autocomplete
+                                v-if="item.empresaConductor"
+                                :items="
+                                  getConductoresPorEmpresa(
+                                    item.empresaConductor
+                                  )
+                                "
+                                v-model="item.conductor"
+                                label="Conductor"
+                                item-text="rut"
+                                item-value="nombreCompleto"
+                                :filter="customFilterConductor"
+                                @change="obtenerPedidosConductor(item.conductor.rut,item.viaje.cliente.RutCliente)"
+                                return-object
+                              >
+                                <template v-slot:item="{ item }">
+                                  {{ item.rut }} - {{ item.nombreCompleto }} 
+                                </template>
+                              </v-autocomplete>
+
+                              <!-- Pedidos de conductor -->
+
+                              <v-autocomplete
+                                label="Pedido"
+                                :items="pedidosConductor"
+                                item-text=""
+                                item-value=""
+                                :loading="loadingPedidos"
+                              >
+                                <template v-slot:prepend-item="">
+                                  <v-row class="pa-3">
+                                    <v-col>
+                                      <v-subheader class="font-weight-bold"
+                                        >Documento SAP</v-subheader
+                                      >
+                                    </v-col>
+                                    <v-col>
+                                      <v-subheader class="font-weight-bold"
+                                        >Linea SAP</v-subheader
+                                      >
+                                    </v-col>
+                                  </v-row>
+                                </template>
+
+                                <template v-slot:item="{ item }">
+                                  <v-row class="pa-3">
+                                    <v-col>
+                                      <v-chip class="mr-2">{{
+                                        item.DocSap
+                                      }}</v-chip>
+                                    </v-col>
+                                    <v-col>
+                                      <v-chip class="mr-2">{{
+                                        item.LineaSap
+                                      }}</v-chip>
+                                    </v-col>
+                                  </v-row>
+                                </template>
+                              </v-autocomplete>
+                              
+                              <v-text-field
+                                v-model="item.viaje.origen"
+                                label="Origen"
+                              ></v-text-field>
+                              <v-text-field
+                                v-model="item.viaje.destino"
+                                label="Destino"
+                              ></v-text-field>
+
+                              <p>Tipo Moneda:</p>
+                              <v-text-field
+                                v-if="item.empresa != ''"
+                                label="CLP"
+                                v-model="solicitudes[index].montos[0].monto"
+                              ></v-text-field>
+                              <v-text-field
+                                v-model="solicitudes[index].montos[1].monto"
+                                v-if="item.empresa == 'TIR'"
+                                label="USD"
+                              ></v-text-field>
+                              <v-text-field
+                                v-model="solicitudes[index].montos[2].monto"
+                                v-if="item.empresa == 'TIR'"
+                                label="ARS"
+                              ></v-text-field>
+                              <v-text-field
+                                v-model="solicitudes[index].montos[3].monto"
+                                v-if="solicitudes[index].empresa == 'TIR'"
+                                label="REAL"
+                              ></v-text-field>
+                            </v-card-text>
+                          </v-expand-transition>
+
+                          <v-tooltip
+                            bottom
+                            v-if="
+                              (solicitudes.length > 1 || index > 0) &&
+                              item.expandida
+                            "
+                          >
+                            <template v-slot:activator="{ on }">
+                              <div class="d-flex justify-center mt-5">
+                                <v-btn
+                                  @click="removeFieldSolicitud(index)"
+                                  icon
+                                  v-on="on"
+                                >
+                                  <v-icon color="red darken-1"
+                                    >mdi-delete</v-icon
+                                  >
+                                </v-btn>
+                              </div>
+                            </template>
+                            <span>Eliminar solicitud</span>
+                          </v-tooltip>
                         </v-card>
                       </div>
+
+                      <!-- Botón "+" fuera de la card -->
+                      <v-tooltip bottom v-if="solicitudes.length > 0">
+                        <template v-slot:activator="{ on }">
+                          <div class="d-flex justify-center mt-5">
+                            <v-btn
+                              @click="addFieldSolicitud(solicitudes.length - 1)"
+                              icon
+                              v-on="on"
+                            >
+                              <v-icon x-large color="green">mdi-plus</v-icon>
+                            </v-btn>
+                          </div>
+                        </template>
+                        <span>Agregar nueva solicitud</span>
+                      </v-tooltip>
                     </v-form>
                   </v-stepper-content>
                 </v-stepper-items>
               </v-stepper>
 
               <v-card-text v-if="editedIndex != -1" class="pa-4">
-                <v-form ref="form" v-model="valid" lazy-validation>
-                  <v-text-field
-                    v-model="editedItem.nombreCompleto"
-                    disabled
-                    label="Nombre"
-                  ></v-text-field>
-                  <v-text-field
-                    disabled
-                    v-model="editedItem.rut"
-                    label="Rut"
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="editedItem.email"
-                    label="Email"
-                  ></v-text-field>
-                  <v-text-field
-                    v-if="editedIndex == -1"
-                    :append-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'"
-                    :type="show1 ? 'text' : 'password'"
-                    name="input-10-2"
-                    hint="Debe contener 8 caracteres"
-                    class="input-group--focused"
-                    @click:append="show1 = !show1"
-                    v-model="editedItem.clave"
-                    label="Clave"
-                  ></v-text-field>
-                  <v-select
-                    v-model="editedItem.rol"
-                    :items="rols"
-                    label="Rol"
-                  ></v-select>
-                  <v-select
-                    disabled
-                    v-model="editedItem.empresa"
-                    :items="empresas"
-                    label="Empresa"
-                  ></v-select>
-                  <v-select
-                    v-if="editedIndex != -1"
-                    v-model="opcion"
-                    label="Cambiar Contraseña"
-                    :items="newPasswordOptions"
-                  >
-                  </v-select>
-                  <v-text-field
-                    v-if="editedIndex != -1"
-                    :disabled="newPassword"
-                    v-model="editedItem.newClave"
-                    label="Nueva Contraseña"
-                    :append-icon="show2 ? 'mdi-eye' : 'mdi-eye-off'"
-                    :type="show2 ? 'text' : 'password'"
-                    name="input-10-2"
-                    hint="Debe contener 8 caracteres"
-                    class="input-group--focused"
-                    @click:append="show2 = !show2"
-                  ></v-text-field>
-                  <v-text-field
-                    v-if="editedIndex != -1"
-                    :disabled="newPassword"
-                    v-model="editedItem.reNewClave"
-                    label="Repetir Contraseña"
-                    :append-icon="show3 ? 'mdi-eye' : 'mdi-eye-off'"
-                    :type="show3 ? 'text' : 'password'"
-                    name="input-10-2"
-                    hint="Debe contener 8 caracteres"
-                    class="input-group--focused"
-                    @click:append="show3 = !show3"
-                  ></v-text-field>
-                </v-form>
+                <v-form ref="form" v-model="valid" lazy-validation> </v-form>
               </v-card-text>
 
               <v-card-actions>
@@ -297,16 +363,23 @@
           </v-dialog>
           <v-dialog persistent v-model="dialogSolicitud">
             <v-toolbar dark color="black lighten-3" dense flat>
-                <v-btn small icon dark @click="dialogSolicitud = !dialogSolicitud">
-                  <v-icon>mdi-close</v-icon>
-                </v-btn>
-                <v-toolbar-title
-                  class="text-body-4 font-weight-bold white--text"
-                >
-                  Solicitudes
-                </v-toolbar-title>
-              </v-toolbar>
-            <visualizador-component :solicitudes="solicitudesActuales" />
+              <v-btn
+                small
+                icon
+                dark
+                @click="dialogSolicitud = !dialogSolicitud"
+              >
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+              <v-toolbar-title class="text-body-4 font-weight-bold white--text">
+                Solicitudes
+              </v-toolbar-title>
+            </v-toolbar>
+            <visualizador-component
+              :solicitudes="solicitudesActuales"
+              @update:dialogo="cerrarDialogSolicitud"
+              @update:solicitudes="handleSolicitudesUpdate"
+            />
           </v-dialog>
           <v-dialog v-model="dialogDelete" max-width="500px">
             <v-card>
@@ -365,6 +438,7 @@
 import UserService from "@/services/UserService";
 import ContenedorService from "@/services/ContenedorService";
 import VisualizadorComponent from "./VisualizadorComponent.vue";
+import ClienteService from "@/services/ClienteService";
 
 export default {
   components: {
@@ -375,16 +449,16 @@ export default {
     e1: 1,
     dialog: false,
     search: "",
+    fullScr: false,
     dialogDelete: false,
     dialogSolicitud: false,
-    newPassword: true,
     loading: true,
     loadingStep2: false,
-    show1: false,
-    show2: false,
-    show3: false,
-
+    clientesTIR: [],
+    clientesTRN: [],
     solicitudesActuales: [],
+    loadingPedidos: false,
+    contenedorActual: {},
     headers: [
       {
         text: "Correlativo",
@@ -401,47 +475,17 @@ export default {
       { text: "Estado", value: "estado", sortable: false },
       { text: "Empresa", value: "empresa", sortable: true },
       { text: "Creado por", value: "creadoPor", sortable: true },
-      { text: "Actions", value: "actions", sortable: false, align: "center"},
+      { text: "Actions", value: "actions", sortable: false, align: "center" },
     ],
     editedIndex: -1,
     rols: [],
     empresas: ["TRN", "TIR"],
-    newPasswordOptions: ["No", "Si"],
-    opcion: "No",
-    cantidadUsuariosAgregar: [
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    ],
-    cantidadUsuarios: 1,
-    items: [],
     solicitudes: [],
     conductoresTIR: [],
     conductoresTRN: [],
+    pedidosConductor: [],
     empresaSeleccionada: "",
     contenedores: [],
-    editedItem: {
-      _id: "",
-      nombreCompleto: "",
-      rol: "",
-      email: "",
-      clave: "",
-      rut: "",
-      newClave: "",
-      reNewClave: "",
-      empresa: "",
-      cambioClave: false,
-    },
-    defaultItem: {
-      _id: "",
-      nombreCompleto: "",
-      rol: "",
-      email: "",
-      clave: "",
-      rut: "",
-      newClave: "",
-      reNewClave: "",
-      empresa: "",
-      cambioClave: false,
-    },
     totalContenedores: 0,
     options: {},
     absolute: true,
@@ -454,15 +498,6 @@ export default {
   },
 
   watch: {
-    opcion(newValue) {
-      if (newValue === "Si") {
-        this.newPassword = false;
-        this.editedItem.cambioClave = true;
-      } else {
-        this.editedItem.cambioClave = false;
-        this.newPassword = true;
-      }
-    },
     dialog(val) {
       val || this.close();
     },
@@ -478,8 +513,75 @@ export default {
   },
 
   methods: {
+    obtenerClientes(empresa) {
+      if (empresa === "TRN") {
+        return this.clientesTRN;
+      } else {
+        return this.clientesTIR;
+      }
+    },
+
+    getConductoresPorEmpresa(empresa) {
+      if (empresa === "TRN") {
+        return this.conductoresTRN;
+      } else {
+        return this.conductoresTIR;
+      }
+    },
+    customFilter(item, queryText) {
+      const searchText = queryText.toLowerCase();
+      const rutMatches = item.RutCliente.toLowerCase().includes(searchText);
+      const nombreMatches =
+        item.NombreCliente.toLowerCase().includes(searchText);
+      return rutMatches || nombreMatches;
+    },
+    customFilterConductor(item, queryText) {
+      const searchText = queryText.toLowerCase();
+      const rutMatches = item.rut.toLowerCase().includes(searchText);
+      const nombreMatches = item.nombreCompleto
+        .toLowerCase()
+        .includes(searchText);
+      return rutMatches || nombreMatches;
+    },
+    expand(index) {
+      this.$set(this.solicitudes, index, {
+        ...this.solicitudes[index],
+        expandida: true,
+      });
+    },
+    collapse(index) {
+      this.$set(this.solicitudes, index, {
+        ...this.solicitudes[index],
+        expandida: false,
+      });
+    },
+    toggleExpand(index) {
+      this.$set(this.solicitudes, index, {
+        ...this.solicitudes[index],
+        expandida: !this.solicitudes[index].expandida,
+      });
+    },
+    handleSolicitudesUpdate(solicitudes) {
+      //ordenar solicitudes por correlativo
+      solicitudes.sort((a, b) => a.correlativo - b.correlativo);
+
+      this.solicitudesActuales = solicitudes;
+      //Buscar esas solicitudes en el array de contenedores y actualizarlas
+      this.contenedores.forEach((contenedor) => {
+        if (contenedor._id === this.contenedorActual._id) {
+          console.log("Contenedor encontrado: ", contenedor);
+          contenedor.solicitudes = JSON.parse(JSON.stringify(solicitudes));
+        }
+      });
+    },
+    cerrarDialogSolicitud() {
+      this.dialogSolicitud = false;
+      this.solicitudesActuales = [];
+      this.contenedorActual = {};
+    },
     mostrarSolicitudes(item) {
-      this.solicitudesActuales = item.solicitudes;
+      this.solicitudesActuales = JSON.parse(JSON.stringify(item.solicitudes));
+      this.contenedorActual = item;
       this.dialogSolicitud = true;
     },
     getColor(item) {
@@ -502,9 +604,9 @@ export default {
       return nombres;
     },
     comeback() {
+      this.fullScr = false;
       this.e1 = 1;
-      this.editedItem = Object.assign({}, this.defaultItem);
-      this.cantidadUsuarios = 1;
+      // this.editedItem = Object.assign({}, this.defaultItem);
       this.solicitudes = [];
     },
 
@@ -537,12 +639,27 @@ export default {
             console.error("Error al obtener datos del servidor:", error);
             this.loading = false;
             resolve({
-              items: [],
+              contenedores: [],
               total: 0,
             });
           });
       });
     },
+
+    async getPedidosConductorTRN(cliente) {
+      try {
+        this.loadingPedidos = true;
+        const response = await ClienteService.obtenerPedidosConductorTRN(
+          cliente.RutTrabajador
+        );
+        this.loadingPedidos = false;
+        this.pedidosTRN = response.data;
+      } catch (error) {
+        console.error("Error al obtener pedidos del cliente:", error);
+        this.loadingPedidos = false;
+      }
+    },
+    async getPedidosClienteTIR() {},
 
     async getServerData(sortBy, sortDesc, page, itemsPerPage) {
       try {
@@ -563,13 +680,13 @@ export default {
 
     editItem(item) {
       this.editedIndex = this.contenedores.indexOf(item);
-      this.editedItem = Object.assign({}, item);
+      // this.editedItem = Object.assign({}, item);
       this.dialog = true;
     },
 
     deleteItem(item) {
       this.editedIndex = this.contenedores.indexOf(item);
-      this.editedItem = Object.assign({}, item);
+      // this.editedItem = Object.assign({}, item);
       this.dialogDelete = true;
     },
 
@@ -581,10 +698,9 @@ export default {
     close() {
       this.dialog = false;
       this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem);
+        // this.editedItem = Object.assign({}, this.defaultItem);
         this.editedIndex = -1;
         this.e1 = 1;
-        this.cantidadUsuarios = 1;
         this.solicitudes = [];
         this.loadingStep2 = false;
       });
@@ -593,27 +709,128 @@ export default {
     closeDelete() {
       this.dialogDelete = false;
       this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem);
+        // this.editedItem = Object.assign({}, this.defaultItem);
         this.editedIndex = -1;
+      });
+    },
+
+    removeFieldSolicitud(index) {
+      this.expand(index - 1);
+      this.solicitudes.splice(index, 1);
+      this.$nextTick(() => {
+        const newCard = document.getElementById(
+          `card-${this.solicitudes.length - 1}`
+        );
+        if (newCard) {
+          setTimeout(() => {
+            newCard.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+              inline: "nearest",
+            });
+          }, 140); // Ajusta este valor si es necesario
+        }
+      });
+    },
+
+    addFieldSolicitud(index) {
+      this.collapse(index);
+      let viaje = {
+        clienteID: "",
+        nombreCliente: "",
+        origen: "",
+        destino: "",
+        pais: "",
+        fecha: "",
+        conductor: "",
+        estado: "NOREALIZADO",
+      };
+
+      let solicitudUsuario = {
+        expandida: true,
+        conductor: "",
+        empresa: this.empresaSeleccionada,
+        creadoPor: "",
+        empresaConductor: "",
+        viaje: { ...viaje },
+        montos: [
+          {
+            tipo: "CLP",
+            monto: 0,
+          },
+          {
+            tipo: "USD",
+            monto: 0,
+          },
+          {
+            tipo: "ARS",
+            monto: 0,
+          },
+          {
+            tipo: "REAL",
+            monto: 0,
+          },
+        ],
+      };
+      // Clonar el objeto solicitudUsuario y asignar una nueva instancia de viaje y montos
+      this.solicitudes.push({
+        ...solicitudUsuario,
+        viaje: { ...viaje },
+        montos: solicitudUsuario.montos.map((monto) => ({ ...monto })),
+      });
+
+      this.$nextTick(() => {
+        const newCard = document.getElementById(
+          `card-${this.solicitudes.length - 1}`
+        );
+        if (newCard) {
+          setTimeout(() => {
+            newCard.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+              inline: "nearest",
+            });
+          }, 100); // Ajusta este valor si es necesario
+        }
       });
     },
 
     async nextStep() {
       try {
-        const token = this.$store.state.token;
-        const conductoresTRN = await UserService.obtenerUsuariosPorEmpresa(
-          "TRN",
-          token
-        );
-        this.conductoresTRN = conductoresTRN;
+        this.e1 = 2;
+        this.loadingStep2 = true;
+        this.fullScr = true;
+
+        if (this.empresaSeleccionada === "") {
+          this.$notify({
+            title: "Error",
+            text: "Debe seleccionar una empresa",
+            type: "error",
+          });
+          return;
+        }
+
+        const clientesTRN = await ClienteService.obtenerClientesTRN();
+        this.clientesTRN = clientesTRN.data;
+
+        const clientesTIR = await ClienteService.obtenerClientesTIR();
+        this.clientesTIR = clientesTIR.data;
+
         const conductoresTIR = await UserService.obtenerUsuariosPorEmpresa(
           "TIR",
-          token
+          this.$store.state.token
         );
+
+        const conductoresTRN = await UserService.obtenerUsuariosPorEmpresa(
+          "TRN",
+          this.$store.state.token
+        );
+
         this.conductoresTIR = conductoresTIR;
+        this.conductoresTRN = conductoresTRN;
 
         let viaje = {
-          clienteID: "",
+          cliente: {},
           nombreCliente: "",
           origen: "",
           destino: "",
@@ -624,6 +841,7 @@ export default {
         };
 
         let solicitudUsuario = {
+          expandida: true,
           conductor: "",
           empresa: this.empresaSeleccionada,
           creadoPor: "",
@@ -649,103 +867,18 @@ export default {
           ],
         };
 
-        // Limpiar el array antes de agregar nuevas solicitudes
-        this.solicitudes = [];
-
-        for (let index = 0; index < this.cantidadUsuarios; index++) {
-          // Clonar el objeto solicitudUsuario y asignar una nueva instancia de viaje y montos
-          this.solicitudes.push({
-            ...solicitudUsuario,
-            viaje: { ...viaje },
-            montos: solicitudUsuario.montos.map((monto) => ({ ...monto })),
-          });
-        }
-
+        // Clonar el objeto solicitudUsuario y asignar una nueva instancia de viaje y montos
+        this.solicitudes.push({
+          ...solicitudUsuario,
+          viaje: { ...viaje },
+          montos: solicitudUsuario.montos.map((monto) => ({ ...monto })),
+        });
+        this.loadingStep2 = false;
         //console.log("Solicitudes: ", this.solicitudes);
-
-        this.e1 = 2;
       } catch (error) {
         console.error("Error: ", error);
       }
     },
-
-    async obtenerUsuarioDesdeApiExterna() {
-      try {
-        this.e1 = 2;
-        this.loadingStep2 = true;
-        const response = await UserService.getUserFromExternalApi(
-          this.editedItem.rut,
-          this.editedItem.empresa
-        );
-        if (response.userFound) {
-          const user = response.data;
-          this.editedItem.nombreCompleto = user.nombrecompleto;
-          this.editedItem.rut = user.rut;
-          this.editedItem.email = user.email;
-          this.editedItem.empresa = user.empresa;
-          const rutConGuion = user.rut;
-          const rutSinGuion = rutConGuion.split("-")[0];
-          this.editedItem.clave = rutSinGuion;
-        } else {
-          this.e1 = 1;
-          this.$notify({
-            title: "Error",
-            text: "Usuario no encontrado en el sistema",
-            type: "error",
-          });
-        }
-
-        this.loadingStep2 = false;
-      } catch (error) {
-        if (error.response && error.response.status == 400) {
-          this.e1 = 1;
-          this.$notify({
-            title: "Error",
-            text: error.response.data.message,
-            type: "error",
-          });
-          this.loadingStep2 = false;
-        } else {
-          this.e1 = 1;
-          this.$notify({
-            title: "Error",
-            text: "Error al obtener usuario desde la API externa",
-            type: "error",
-          });
-          this.loadingStep2 = false;
-        }
-      }
-    },
-
-    async borrarUsuario() {
-      try {
-        await UserService.deleteUser(this.editedItem._id);
-        this.getDataFromApi();
-        this.$notify({
-          title: "Success",
-          text: "Usuario eliminado correctamente",
-          type: "success",
-        });
-      } catch (error) {
-        if (error.response && error.response.status === 403) {
-          // Manejar el código 403, por ejemplo, cerrar sesión
-          this.$notify({
-            title: "Error",
-            text: "Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.",
-            type: "error",
-          });
-        } else {
-          // Otro manejo de errores, por ejemplo, mostrar un mensaje genérico
-          //console.error("Error al eliminar el usuario:", error.message);
-          this.$notify({
-            title: "Error",
-            text: "Ha ocurrido un error al eliminar el usuario.",
-            type: "error",
-          });
-        }
-      }
-    },
-
     async agregarContenedor() {
       try {
         const response = await ContenedorService.addContenedor(
@@ -753,7 +886,7 @@ export default {
         );
 
         this.$notify({
-          title: "Success",
+          title: "Exitoso",
           text: response.message,
           type: "success",
         });
@@ -764,70 +897,6 @@ export default {
       }
     },
 
-    async actualizarUser() {
-      try {
-        //Verificar si se cambia la contraseña
-        if (this.opcion == "Si") {
-          //Verificar si la contraseña nueva y la repetida son iguales
-          if (this.editedItem.newClave === this.editedItem.reNewClave) {
-            //Actualizar usuario con nueva contraseña
-            const response = await UserService.updateUser(this.editedItem);
-            this.$notify({
-              title: "Success",
-              text: response.message,
-              type: "success",
-            });
-            this.getDataFromApi();
-          } else {
-            this.$notify({
-              title: "Error",
-              text: "Las contraseñas no coinciden",
-              type: "error",
-            });
-          }
-        } else {
-          //Actualizar usuario sin cambiar contraseña
-          const response = await UserService.updateUser(this.editedItem);
-          this.$notify({
-            title: "Success",
-            text: response.message,
-            type: "success",
-          });
-          this.getDataFromApi();
-        }
-      } catch (error) {
-        // Manejar excepciones específicas que provienen de UserService.updateUser
-        if (
-          error.message ===
-          "Tu sesión ha expirado. Por favor, vuelve a iniciar sesión."
-        ) {
-          // Cerrar sesión u otra acción
-          this.$notify({
-            title: "Error",
-            text: error.message,
-            type: "error",
-          });
-        } else if (error.message === "El correo ya existe") {
-          this.$notify({
-            title: "Error",
-            text: error.message,
-            type: "error",
-          });
-        } else if (error.message === "Todos los campos son obligatorios") {
-          this.$notify({
-            title: "Error",
-            text: error.message,
-            type: "error",
-          });
-        } else {
-          this.$notify({
-            title: "Error",
-            text: "Error al actualizar el usuario",
-            type: "error",
-          });
-        }
-      }
-    },
     save() {
       // Si se está editando un parametro existente
       if (this.editedIndex > -1) {
@@ -842,3 +911,14 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.table-row {
+  border-bottom: 1px solid #ccc; /* Línea de borde inferior para cada fila */
+}
+
+.table-cell {
+  border-right: 1px solid #ccc; /* Línea de borde derecha para cada celda */
+  padding: 8px; /* Ajusta el espaciado según tus necesidades */
+}
+</style>

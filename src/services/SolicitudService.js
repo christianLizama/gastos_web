@@ -4,19 +4,21 @@ import Vue from "vue";
 import store from "@/store";
 import router from "@/router";
 
-const ContenedorService = {
-  getContenedores: async (sortBy, sortDesc, search, page, itemsPerPage) => {
+const solicitudService = {
+  updateSolicitudes: async (solicitudes) => {
     try {
       const token = store.state.token;
-      const response = await axios.get(
-        `solicitud/obtenerContenedoresSolicitudes?search=${search}&page=${page}&limit=${itemsPerPage}&sortBy=${sortBy}&sortDesc=${sortDesc}`,
+      
+      const response = await axios.put(
+        "solicitud/actualizarSolicitudes",
+        { solicitudes: solicitudes },
         {
           headers: {
             token: token,
           },
         }
       );
-      return response.data;
+      return response;
     } catch (error) {
       if (error.response.status === 403) {
         store.dispatch("logout");
@@ -25,26 +27,24 @@ const ContenedorService = {
           text: "Su sesión ha expirado",
           type: "error",
         });
-        throw error;
       }
       else if(error.response.status === 401){
         router.push({ name: "home" });
         Vue.notify({
           title: "Error",
-          text: "No tiene permisos para acceder a esta página",
+          text: "No tiene permisos para realizar esta acción",
           type: "error",
         }); 
-        throw error;
       }
     }
   },
 
-  addContenedor: async (contenedor) => {
+  updateSolicitud: async (solicitud) => {
     try {
       const token = store.state.token;
       const response = await axios.post(
-        "solicitud/guardarContenedorSolicitudes",
-        { contenedor: contenedor },
+        "solicitud/actualizarSolicitud",
+        { solicitud: solicitud },
         {
           headers: {
             token: token,
@@ -73,4 +73,4 @@ const ContenedorService = {
   },
 };
 
-export default ContenedorService;
+export default solicitudService;
